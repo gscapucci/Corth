@@ -88,9 +88,51 @@ DataType get_data_type(char *str)
     {
         return DT_INT;
     }
-    if(strlen(str) == 3 && (str[0] == '\'' && str[2] == '\''))
+    if((str[0] == '\'' && str[strlen(str) - 1] == '\''))
     {
-        return DT_CHAR;
+        if(strlen(str) == 3)
+        {
+            return DT_CHAR;
+        }
+        else if(strlen(str) == 4 && str[1] == '\\')
+        {
+            switch (str[2])
+            {
+            case 'n':   
+                str[1] = '\n';
+                break;
+            case 'a':   
+                str[1] = '\a';
+                break;
+            case 'b':   
+                str[1] = '\b';
+                break;
+            case 't':   
+                str[1] = '\t';
+                break;
+            case 'v':   
+                str[1] = '\v';
+                break;
+            case 'f':   
+                str[1] = '\f';
+                break;
+            case 'r':   
+                str[1] = '\r';
+                break;
+            case 'e':   
+                str[1] = '\e';
+                break;
+            case '\"':   
+                str[1] = '\"';
+                break;
+            default:
+                ERROR("trying to escape inescapable char");
+                break;
+            }
+                str[2] = '\'';
+                str[3] = '\0';
+                return DT_CHAR;
+        }
     }
     if(str[0] == '\"' && str[strlen(str) - 1] == '\"')
     {
@@ -117,7 +159,33 @@ KeyWord get_keyword(char *str)
 
 WordType get_word_type(char *str)
 {
-    if( is_number(str) || ((strlen(str) == 3) && (str[0] == '\'' && str[2] == '\'')) || (str[0] == '\"' && str[strlen(str) - 1] == '\"'))
+    if(strlen(str) == 4 && str[0] == '\'' && str[3] == '\'')
+    {
+        if(str[1] == '\\')
+        {
+            switch (str[2])
+            {
+            case 'n':
+            case 'a':
+            case 'b':
+            case 't':
+            case 'v':
+            case 'f':
+            case 'r':
+            case 'e':
+            case '\"':
+                return WT_DATA_TYPE;
+            default:
+                ERROR("trying to escape inescapable char");
+                break;
+            }
+        }
+        else
+        {
+            ERROR("char must have one character");
+        }
+    }
+    if(is_number(str) || ((strlen(str) == 3) && (str[0] == '\'' && str[2] == '\'')) || (str[0] == '\"' && str[strlen(str) - 1] == '\"'))
     {
         return WT_DATA_TYPE;
     }
