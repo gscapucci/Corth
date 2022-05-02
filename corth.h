@@ -21,7 +21,8 @@ typedef struct Word Word;
 enum DataType {
     DT_INT,
     DT_CHAR,
-    DT_STRING
+    DT_STRING,
+    DT_BOOL
 };
 
 enum Op {
@@ -29,7 +30,9 @@ enum Op {
     OP_MINUS = '-',
     OP_DIVISION = '/',
     OP_MULTIPLY = '*',
-    OP_PRINT = '.'
+    OP_PRINT = '.',
+    OP_EQUAL = '=',
+    OP_PRINT_STACK = '?'
 };
 
 enum WordType {
@@ -49,7 +52,7 @@ enum KeyWord {
 struct Stack
 {
     Word *item[MAX_STACK_CAP];
-    size_t size;
+    size_t size;    
 };
 
 struct Word

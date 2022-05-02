@@ -1,5 +1,67 @@
 #include "corth.h"
 
+void escape_str_or_char(char *str)
+{
+    size_t start = 0, end = 0;;
+    if(str[0] == '\"')
+    {
+        start = 1;
+    }
+    if(str[strlen(str) - 1] == '\"')
+    {
+        end = 1;
+    }
+    for (size_t i = start; i < strlen(str) - end; i++)
+    {
+        if(str[i] == '\\')
+        {
+            switch (str[i + 1])
+            {
+            case 'n':
+                str[i] = '\n';
+                break;
+            case 'a':
+                str[i] = '\a';
+                break;
+            case 'b':
+                str[i] = '\b';
+                break;
+            case 't':
+                str[i] = '\t';
+                break;
+            case 'v':
+                str[i] = '\v';
+                break;
+            case 'f':
+                str[i] = '\f';
+                break;
+            case 'r':
+                str[i] = '\r';
+                break;
+            case 'e':
+                str[i] = '\e';
+                break;
+            case '\"':
+                str[i] = '\"';
+                break;
+            case '\0':
+                str[i] = '\0';
+                break;
+            default:
+                ERROR("trying to escape inescapable");
+                break;
+            }
+            size_t j;
+            for (j = i + 1; j < strlen(str) - end; j++)
+            {
+                str[j] = str[j + 1];
+            }
+            str[j] = '\0';
+        }
+    }
+    
+}
+
 void stack_push(Stack *stack, Word *word)
 {
     if(word->type == WT_NONE)
@@ -71,7 +133,12 @@ long long str_to_long_long(char *str)
 bool is_number(char *str)
 {
     bool isNumber = true;
-    for (size_t i = 0; i < strlen(str); i++)
+    size_t start = 0;
+    if(str[0] == '-')
+    {
+        start++;
+    }
+    for (size_t i = start; i < strlen(str); i++)
     {
         if(str[i] < '0' || str[i] > '9')
         {
@@ -90,52 +157,16 @@ DataType get_data_type(char *str)
     }
     if((str[0] == '\'' && str[strlen(str) - 1] == '\''))
     {
-        if(strlen(str) == 3)
+        escape_str_or_char(str);
+        if(strlen(str) != 3)
         {
-            return DT_CHAR;
+            ERROR("char literal must have one character");
         }
-        else if(strlen(str) == 4 && str[1] == '\\')
-        {
-            switch (str[2])
-            {
-            case 'n':   
-                str[1] = '\n';
-                break;
-            case 'a':   
-                str[1] = '\a';
-                break;
-            case 'b':   
-                str[1] = '\b';
-                break;
-            case 't':   
-                str[1] = '\t';
-                break;
-            case 'v':   
-                str[1] = '\v';
-                break;
-            case 'f':   
-                str[1] = '\f';
-                break;
-            case 'r':   
-                str[1] = '\r';
-                break;
-            case 'e':   
-                str[1] = '\e';
-                break;
-            case '\"':   
-                str[1] = '\"';
-                break;
-            default:
-                ERROR("trying to escape inescapable char");
-                break;
-            }
-                str[2] = '\'';
-                str[3] = '\0';
-                return DT_CHAR;
-        }
+        return DT_CHAR;
     }
     if(str[0] == '\"' && str[strlen(str) - 1] == '\"')
     {
+        escape_str_or_char(str);
         return DT_STRING;
     }
     HERE("unknown data type");
@@ -161,29 +192,12 @@ WordType get_word_type(char *str)
 {
     if(strlen(str) == 4 && str[0] == '\'' && str[3] == '\'')
     {
-        if(str[1] == '\\')
-        {
-            switch (str[2])
-            {
-            case 'n':
-            case 'a':
-            case 'b':
-            case 't':
-            case 'v':
-            case 'f':
-            case 'r':
-            case 'e':
-            case '\"':
-                return WT_DATA_TYPE;
-            default:
-                ERROR("trying to escape inescapable char");
-                break;
-            }
-        }
-        else
+        escape_str_or_char(str);
+        if(strlen(str) == 4)
         {
             ERROR("char must have one character");
         }
+        return WT_DATA_TYPE;
     }
     if(is_number(str) || ((strlen(str) == 3) && (str[0] == '\'' && str[2] == '\'')) || (str[0] == '\"' && str[strlen(str) - 1] == '\"'))
     {
@@ -198,6 +212,8 @@ WordType get_word_type(char *str)
         case OP_DIVISION:
         case OP_MULTIPLY:
         case OP_PRINT:
+        case OP_EQUAL:
+        case OP_PRINT_STACK:
             return WT_OP;
         case WT_NONE:
             return WT_NONE;
@@ -217,181 +233,132 @@ WordType get_word_type(char *str)
     exit(1);
 }
 
-int take_next_word(FILE *file, Word *word)
+void take_next_string(FILE *file, Word *word)
 {
     char str[1024] = {0};
-    size_t str_len = 0;
+    int str_len = 0;
     char c;
+    word->type = WT_DATA_TYPE;
+    word->data_type = DT_STRING;
+    word->size = 0;
     word->value = NULL;
-    word->type = WT_NONE;
-    bool is_str = false;
-    bool escape = false;
-    bool is_char = false;
     while (true)
     {
         c = getc(file);
-        if(c == '\'')
+        if(c == EOF)
         {
-            is_char = true;
+            ERROR("EOF");
         }
-        else if(c == '\"')
+        if(c == '\"' && str_len == 0)
         {
-            if(str_len != 0)
-            {
-                if(str[str_len - 1] != '\\')
-                {
-                    is_str = is_str ? false : true;
-                }
-            }
-            else
-            {
-                is_str = is_str ? false : true;
-            }
+            word->value = malloc(0);
+            return;
         }
-        if(c == '\\' && is_str == true)
+        if((c == '\"' && str[str_len - 1] != '\\') || c == '\0')
         {
-            escape = true;
-        }
-        else if(c == '\\' && str[str_len - 1] == '\'');
-        else if(escape)
-        {
-            switch (c)
-            {
-            case 'n':
-                str[str_len - 1] = '\n';
-                break;
-            case 'a':
-                str[str_len - 1] = '\a';
-                break;
-            case 'b':
-                str[str_len - 1] = '\b';
-                break;
-            case 't':
-                str[str_len - 1] = '\t';
-                break;
-            case 'v':
-                str[str_len - 1] = '\v';
-                break;
-            case 'f':
-                str[str_len - 1] = '\f';
-                break;
-            case 'r':
-                str[str_len - 1] = '\r';
-                break;
-            case 'e':
-                str[str_len - 1] = '\e';
-                break;
-            case '\"':
-                str[str_len - 1] = '\"';
-                break;
-            default:
-                ERROR("trying to escape nothing");
-                break;
-            }
-            str[str_len] = '\0';
-            str_len--;
-            escape = false;
-        }
-        if((c ==  ' ' || c == '\n' || c == EOF) && !is_str)
-        {
-            if(str_len > 0)
-            {
-                word->type = get_word_type(str);
-                switch (word->type)
-                {
-                case WT_NONE:
-                    break;
-                case WT_OP:
-                    switch (str[0])
-                    {
-                    case OP_PLUS:
-                        word->op = OP_PLUS;
-                        break;
-                    case OP_MINUS:
-                        word->op = OP_MINUS;
-                        break;
-                    case OP_DIVISION:
-                        word->op = OP_DIVISION;
-                        break;
-                    case OP_MULTIPLY:
-                        word->op = OP_MULTIPLY;
-                        break;
-                    case OP_PRINT:
-                        word->op = OP_PRINT;
-                        break;
-                    default:
-                        HERE("unknown OP");
-                        fprintf(stderr, " %s", str);
-                        exit(1);
-                        break;
-                    }
-                    break;
-                case WT_DATA_TYPE:
-                    switch (get_data_type(str))
-                    {
-                    case DT_INT:
-                        word->size = sizeof(long long);
-                        word->value = malloc(word->size);
-                        word->data_type = DT_INT;
-                        memcpy(word->value, &(long long){str_to_long_long(str)}, word->size);
-                        break;
-                    case DT_CHAR:
-                        word->size = sizeof(char);
-                        word->value = malloc(sizeof(char));
-                        word->data_type = DT_CHAR;
-                        memcpy(word->value, &str[1], word->size);
-                        break;
-                    case DT_STRING:
-                        word->size = str_len - 1;
-                        word->value = malloc(word->size * sizeof(char));
-                        word->data_type = DT_STRING;
-                        str[str_len - 1] = '\0';
-                        memcpy(word->value, str + 1, word->size);
-                        break;
-                    default:
-                        HERE("unknown data type");
-                        fprintf(stderr, " %s\n", str);
-                        exit(1);
-                        break;
-                    }
-                    break;
-                case WT_KEY_WORD:
-                    switch (get_keyword(str))
-                    {
-                    case KW_DROP:
-                        word->key_word = KW_DROP;
-                        break;
-                    case KW_DUP:
-                        word->key_word = KW_DUP;
-                        break;
-                    case KW_SWAP:
-                        word->key_word = KW_SWAP;
-                        break;
-                    case KW_OVER:
-                        word->key_word = KW_OVER;
-                        break;
-                    default:
-                        HERE("unknown keyword");
-                        fprintf(stderr, " %s\n", str);
-                        exit(1);
-                        break;
-                    }
-                    break;
-                default:
-                    HERE("unknown type");
-                    fprintf(stderr, " %s\n", str);
-                    exit(1);
-                    break;
-                }
-            }
-            else if(c == '\n')
-            {
-                continue;
-            }
-            return c == EOF? (str_len != 0 ? 0 : EOF) : 0;
+            escape_str_or_char(str);
+            word->size = (strlen(str) + 1) * sizeof(char);
+            word->value = malloc(word->size);
+            memcpy(word->value, str, word->size);
+            return;
         }
         str[str_len] = c;
         str_len++;
+    }
+    
+}
+
+void take_next_char(FILE *file, Word *word)
+{
+    word->type = WT_DATA_TYPE;
+    word->data_type = DT_CHAR;
+    word->size = sizeof(char);
+    char c[2] = {0};
+    c[0] = getc(file);
+    if(c[0] == EOF)
+    {
+        ERROR("EOF");
+    }
+    if(c[0] == '\\')
+    {
+        c[1] = getc(file);
+        escape_str_or_char(c);
+    }
+    c[1] = getc(file);
+    if(c[1] != '\'')
+    {
+        ERROR("closing char liteal error");
+    }
+    word->value = malloc(word->size);
+    memcpy(word->value, &c[0], word->size);
+}
+
+int take_next_word(FILE *file, Word *word)
+{
+    char str[1024] = {0};
+    int str_len = 0;
+    char c;
+    word->value = NULL;
+    word->type = WT_NONE;
+    while (true)
+    {
+        c = getc(file);
+        switch (c)
+        {
+        case '\"':
+            take_next_string(file, word);
+            return 0;
+        case '\'':
+            take_next_char(file, word);
+            return 0;
+        default:
+            break;
+        }
+
+        if(c != ' ' && c != '\n' && c != EOF)
+        {
+            str[str_len] = c;
+            str_len++;
+            continue;
+        }
+
+        if(str_len > 0)
+        {
+            word->type = get_word_type(str);
+            switch (word->type)
+            {
+            case WT_DATA_TYPE:
+                word->data_type = get_data_type(str);
+                switch (word->data_type)
+                {
+                case DT_INT:
+                    word->size = sizeof(long long);
+                    word->value = malloc(word->size);
+                    memcpy(word->value, &(long long){str_to_long_long(str)}, word->size);
+                    break;
+                default:
+                    ERROR("unknown data type");
+                    break;
+                }
+                break;
+            case WT_KEY_WORD:
+                word->key_word = get_keyword(str);
+                break;
+            case WT_OP:
+                word->op = (Op)str[0];
+                break;
+            case WT_NONE:
+                break;
+            default:
+                ERROR("unknown word type");
+                break;
+            }
+            return c == EOF ? (str_len == 0 ? EOF : 0) : 0;
+        }
+        if(c == EOF)
+        {
+            return EOF;
+        }
     }
 }
 
@@ -436,12 +403,19 @@ void start(char *file_path)
                     Word wrd = stack_pop(&stack);
                     printf("%c", *(char *)wrd.value);
                     free(wrd.value);
-                    continue;
+                    continue;   
                 }
                 if(stack.item[stack.size - 1]->data_type == DT_STRING)
                 {
                     Word wrd = stack_pop(&stack);
                     printf("%s", (char *)wrd.value);
+                    free(wrd.value);
+                    continue;
+                }
+                if(stack.item[stack.size - 1]->data_type == DT_BOOL)
+                {
+                    Word wrd = stack_pop(&stack);
+                    *(bool *)wrd.value ? printf("true") : printf("false");
                     free(wrd.value);
                     continue;
                 }
@@ -468,6 +442,118 @@ void start(char *file_path)
                     ERROR("error");
                 }
             }
+            if(word.op == OP_EQUAL)
+            {
+                Word wrd1, wrd2;
+                wrd1 = stack_pop(&stack);
+                wrd2 = stack_pop(&stack);
+                
+                Word wrdbool;
+                wrdbool.type = WT_DATA_TYPE;
+                wrdbool.data_type = DT_BOOL;
+                wrdbool.size = sizeof(bool);
+                wrdbool.value = malloc(wrdbool.size);
+                
+                if(wrd1.size != wrd2.size)
+                {
+                    memcpy(wrdbool.value, &(bool){false}, wrdbool.size);
+                }
+                else if(!memcmp(wrd1.value, wrd2.value, wrd1.size))
+                {
+                    memcpy(wrdbool.value, &(bool){true}, wrdbool.size);
+                }
+                else
+                {
+                    memcpy(wrdbool.value, &(bool){false}, wrdbool.size);
+                }
+                stack_push(&stack, &wrdbool);
+                continue;
+            }
+            if(word.op == OP_PRINT_STACK)
+            {
+                for (size_t i = stack.size - 1;; i--)
+                {
+                    printf("(");
+                    switch (stack.item[i]->type)
+                    {
+                    case WT_NONE:
+                        printf("NONE");
+                        break;
+                    case WT_DATA_TYPE:
+                        printf("DATA TYPE -> ");
+                        switch (stack.item[i]->data_type)
+                        {
+                        case DT_BOOL:
+                            printf("BOOL");
+                            break;
+                        case DT_CHAR:
+                            printf("CHAR");
+                            break;
+                        case DT_STRING:
+                            printf("STRING");
+                            break;
+                        case DT_INT:
+                            printf("INT");
+                            break;
+                        default:
+                            break;
+                        }
+                        break;
+                    case WT_KEY_WORD:
+                        printf("KEYWORD -> ");
+                        switch (stack.item[i]->key_word)
+                        {
+                        case KW_DROP:
+                            printf("DROP");
+                            break;
+                        case KW_DUP:
+                            printf("DUP");
+                            break;
+                        case KW_OVER:
+                            printf("OVER");
+                            break;
+                        case KW_SWAP:
+                            printf("SWAP");
+                            break;
+                        default:
+                            break;
+                        }
+                        break;
+                    case WT_OP:
+                        printf("OP -> ");
+                        switch (stack.item[i]->op)
+                        {
+                        case OP_DIVISION:
+                            printf("DIVISION");
+                            break;
+                        case OP_MULTIPLY:
+                            printf("MULTIPLY");
+                            break;
+                        case OP_MINUS:
+                            printf("MINUS");
+                            break;
+                        case OP_PLUS:
+                            printf("PLUS");
+                            break;
+                        case OP_EQUAL:
+                            printf("EQUL");
+                            break;
+                        case OP_PRINT:
+                            printf("PRINT");
+                            break;
+                        default:
+                            break;
+                        }
+                        break;
+                    default:
+                        break;
+                    }
+                    printf(")\n");
+                    if(!i){break;}
+                }
+                continue;
+            }
+            ERROR("unknown op");
         }
         if(word.type == WT_KEY_WORD)
         {
@@ -517,7 +603,9 @@ void start(char *file_path)
             }
             ERROR("unknown keyword");
         }
-        ERROR("unknown type");
+        HERE("unknown type");
+        fprintf(stderr, " typeid: %d\n", (int)word.type);
+        exit(1);
     }
     printf("\n");
     if(stack.size != 0)
