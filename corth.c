@@ -677,4 +677,5 @@ void start(char *file_path)
         ERROR("unhandle data on stack");
     }
     fclose(source_file);
+    
 }
