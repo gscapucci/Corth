@@ -1,5 +1,6 @@
+main = std
 files = corth.c main.c
-input_file = std.corth
+input_file = $(main).corth
 link = -lm
 
 out: $(files)
@@ -8,8 +9,18 @@ out: $(files)
 debug: $(files)
 	gcc -g $(files) $(link)
 
+gcccom: out
+	./corth -com $(input_file)
+	./fasm $(main).asm
+
 clean:
 	del *.exe
+	del a.out
+	del corth
+	del micro
 
-run: debug out $(input_file)
+sim: debug out $(input_file)
 	./corth $(input_file)
+
+run: gcccom
+	./$(main)

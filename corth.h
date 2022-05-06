@@ -10,6 +10,8 @@
 //máximo de dados que podem ser empilhados
 #define MAX_STACK_CAP 1024*200
 
+#define MAX_MACRO_NAMES 1024*100
+
 typedef enum DataType DataType;
 typedef enum Op Op;
 typedef enum WordType WordType;
@@ -17,7 +19,8 @@ typedef enum KeyWord KeyWord;
 
 typedef struct Stack Stack;
 typedef struct Word Word;
-
+typedef struct Macro Macro;
+typedef struct MacroVec MacroVec;
 //tipos de dados aceitos
 enum DataType {
     DT_INT,
@@ -43,7 +46,9 @@ enum WordType {
     WT_DATA_TYPE,
     WT_OP,
     WT_KEY_WORD,
-    WT_NONE = ' '
+    WT_MACRO,
+    WT_NONE = ' ',
+    WT_COMMENT = '#'
 };
 
 //keywords da linguagem corth, é usado como índice do array com as keywords
@@ -59,14 +64,20 @@ enum KeyWord {
 
     KW_CAST_CHAR,
     KW_CAST_INT,
-    KW_CAST_BOOL
+    KW_CAST_BOOL,
+    KW_CAST_FLOAT,
+
+    KW_TRUE,
+    KW_FALSE,
+
+    KW_COUNT
 };
 
 //a pilha da linguagem
 struct Stack
 {
     Word *item[MAX_STACK_CAP];
-    size_t size;    
+    size_t size;
 };
 
 
@@ -74,6 +85,7 @@ struct Word
 {
     void *value;
     size_t size;
+    // size_t file_line;
     WordType type;
     union
     {
@@ -89,6 +101,28 @@ void start(char *path);
 void stack_push(Stack *stack, Word *word);
 Word stack_pop(Stack *stack);
 
+struct Macro
+{
+    char *name;
+    Stack macro_stack;
+};
+struct MacroVec
+{
+    Macro *macros[MAX_MACRO_NAMES];
+    size_t size;
+};
+
+void create_macro(FILE *file);
+void macro_vec_push(Word *word);
+void clear_macro_vec();
+
+static const char const *type_names[] = {
+    "int",
+    "char",
+    "str",
+    "bool",
+    "float"
+};
 
 // dup  ( a -- a a )
 // drop ( a -- )
@@ -101,17 +135,22 @@ static const char const *key_word[] = {
     "swap",
     "over",
     "rot",
-    "macro",//TODO
-    "end",//TODO
+
+    "macro",
+    "end",
     "set_float_precision",
 
     "cast(char)",
     "cast(int)",
     "cast(bool)",
-    "cast(float)"
+    "cast(float)",
+
+    "true",
+    "false"
 };
 
-static const int KEY_WORD_COUNT = sizeof(key_word) / sizeof(*key_word);
+static MacroVec macro_vec = {0};
+
 static long long float_precision = 5;
 
 #endif /* CORTH_H */

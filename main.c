@@ -5,14 +5,21 @@
 
 int main(int argc, char **argv)
 {
-    if(argc != 2)
-    {
-        ERROR("input a single file");
-    }
-    if(strlen(argv[1]) < 6 || strcmp(argv[1] + strlen(argv[1]) - 6, ".corth") != 0)
+    if(strlen(argv[argc - 1]) < 6 || !strcmp(argv[argc - 1] + strlen(argv[argc - 1]) - 6, ".corth"))
     {
         ERROR("invalid input file");
     }
-    start(argv[1]);
-    return 0;
+    if(argc == 2)
+    {
+        start(argv[1]);
+        return 0;
+    }
+    if(argc == 3 && !strcmp(argv[1], "-com"))
+    {
+        UNIMPLEMENTED("compilation");
+        //compile(argc[1]);
+        return 0;
+    }
+    ERROR("error");
+    return 1;
 }

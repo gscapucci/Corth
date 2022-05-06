@@ -11,8 +11,8 @@
             HERE(__VA_ARGS__);                  \
             exit(1)
 
-#define UNIMPLEMENTED                           \
-            HERE("not implemented yet");        \
+#define UNIMPLEMENTED(...)                          \
+            HERE(__VA_ARGS__" not implemented yet");\
             exit(1)
 
 #endif /* MACROS_H */

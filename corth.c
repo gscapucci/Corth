@@ -1,4 +1,134 @@
 #include "corth.h"
+
+/*-----functon-prototypes------*/
+void escape_str_or_char(char *str);
+long long str_to_long_long(char *str);
+long double str_to_long_double(char *str);
+bool is_integer(char *str);
+bool is_float(char *str);
+bool is_valid_word(Word *word);
+DataType get_data_type(char *str);
+KeyWord get_keyword(char *str);
+WordType get_word_type(char *str);
+void take_next_string(FILE *file, Word *word);
+void take_next_char(FILE *file, Word *word);
+int take_next_word(FILE *file, Word *word);
+/*-----------------------------*/
+    
+void create_macro(FILE *file)
+{
+    Word word;
+    char c;
+    char str[1024] = {0};
+    size_t str_len = 0;
+    while(true)
+    {
+        c = getc(file);
+        if(c == '#')
+        {
+            while (c != '\n')
+            {
+                c = getc(file);
+            }
+        }
+        if(c == EOF)
+        {
+            ERROR("not expect EOF");
+        }
+        if(c != ' ' && c != '\n')
+        {
+            str[str_len] = c;
+            str_len++;
+            continue;
+        }
+
+        if(is_float(str) || is_integer(str))
+        {
+            ERROR("not expect number");
+        }
+
+        if(str_len == 1)
+        {
+            switch (str[0])
+            {
+            case OP_DIVISION:
+            case OP_EQUAL:
+            case OP_MINUS:
+            case OP_MULTIPLY:
+            case OP_PLUS:
+            case OP_PRINT:
+            case OP_PRINT_STACK:
+                ERROR("not expect OP");
+                break;
+            case WT_NONE:
+                ERROR("not expect NONE");
+                break;
+            default:
+                break;
+            }
+        }
+
+        for (size_t i = 0; i < KW_COUNT; i++)
+        {
+            if(!strcmp(str, key_word[i]))
+            {
+                ERROR("not expect key word");
+            }
+        }
+        for (size_t i = 0; i < macro_vec.size; i++)
+        {
+            if(!strcmp(str, macro_vec.macros[i]->name))
+            {
+                ERROR("this macro already exist");
+            }
+        }
+        
+        macro_vec.macros[macro_vec.size] = malloc(sizeof(Macro));
+        macro_vec.macros[macro_vec.size]->macro_stack.size = 0;
+        macro_vec.macros[macro_vec.size]->name = malloc((str_len + 1) * sizeof(char));
+        memcpy(macro_vec.macros[macro_vec.size]->name, str, str_len + 1);
+        break;
+    }
+    
+    while (true)
+    {
+        int ret = take_next_word(file, &word);
+        if(ret == EOF)
+        {
+            ERROR("unfinished macro");
+        }
+        if(word.type == WT_KEY_WORD && word.key_word == KW_MACRO)
+        {
+            ERROR("can not create a macro inside a macro");
+        }
+        if(word.type == WT_KEY_WORD && word.key_word == KW_END)
+        {
+            if(macro_vec.macros[macro_vec.size]->macro_stack.size == 0)
+            {
+                ERROR("can not create empty macro");
+            }
+            macro_vec.size++;
+            return;
+        }
+        macro_vec_push(&word);
+    }
+}
+
+void macro_vec_push(Word *word)
+{
+    stack_push(&macro_vec.macros[macro_vec.size]->macro_stack, word);
+}
+
+void clear_macro_vec()
+{
+    while (macro_vec.size > 0)
+    {
+        free(macro_vec.macros[macro_vec.size - 1]->name);
+        stack_pop(&macro_vec.macros[macro_vec.size - 1]->macro_stack);
+        macro_vec.size--;
+    }
+}
+
 //escapa caracteres como \n o program lê como '\\' e 'n' a função converte para '\n'
 void escape_str_or_char(char *str)
 {
@@ -77,12 +207,25 @@ void stack_push(Stack *stack, Word *word)
     {
         free(stack->item[stack->size]);
     }
+
     stack->item[stack->size] = malloc(sizeof(Word));
-    stack->item[stack->size]->value = malloc(word->size);
-    memcpy(stack->item[stack->size]->value, word->value, word->size);
     stack->item[stack->size]->type = word->type;
-    stack->item[stack->size]->size = word->size;
-    stack->item[stack->size]->data_type = word->data_type;
+    stack->item[stack->size]->size = 0;
+    if(word->type == WT_DATA_TYPE)
+    {
+        stack->item[stack->size]->size = word->size;
+        stack->item[stack->size]->value = malloc(word->size);
+        memcpy(stack->item[stack->size]->value, word->value, word->size);
+        stack->item[stack->size]->data_type = word->data_type;
+    }
+    else if(word->type == WT_KEY_WORD)
+    {
+        stack->item[stack->size]->key_word = word->key_word;
+    }
+    else if(word->type == WT_OP)
+    {
+        stack->item[stack->size]->op = word->op;
+    }
     stack->size++;
 }
 
@@ -97,10 +240,13 @@ Word stack_pop(Stack *stack)
     Word word;
     word.type = stack->item[stack->size]->type;
     word.data_type = stack->item[stack->size]->data_type;
-    word.size = stack->item[stack->size]->size;
-    word.value = malloc(word.size);
-    memcpy(word.value, stack->item[stack->size]->value, word.size);
-    free(stack->item[stack->size]->value);
+    if(word.type == WT_DATA_TYPE || word.type == WT_KEY_WORD || word.type == WT_MACRO)
+    {
+        word.size = stack->item[stack->size]->size;
+        word.value = malloc(word.size);
+        memcpy(word.value, stack->item[stack->size]->value, word.size);
+        free(stack->item[stack->size]->value);
+    }
     return word;
 }
 
@@ -167,6 +313,74 @@ bool is_float(char *str)
     return (dot_count == 1 && is_float && dot) ? true : false;
 }
 
+bool is_valid_word(Word *word)
+{
+    switch (word->type)
+    {
+    case WT_DATA_TYPE:
+        switch (word->data_type)
+        {
+        case DT_BOOL:
+        case DT_CHAR:
+        case DT_FLOAT:
+        case DT_INT:
+        case DT_STRING:
+            return true;
+        default:
+            return false;
+        }
+        break;
+    case WT_KEY_WORD:
+        switch (word->key_word)
+        {
+        case KW_CAST_BOOL:
+        case KW_CAST_CHAR:
+        case KW_CAST_INT:
+        case KW_DROP:
+        case KW_DUP:
+        case KW_END:
+        case KW_MACRO:
+        case KW_OVER:
+        case KW_ROT:
+        case KW_SET_FLOAT_PRECISION:
+        case KW_SWAP:
+        case KW_TRUE:
+        case KW_FALSE:
+            return true;
+        default:
+            return false;
+        }
+        break;
+    case WT_MACRO:
+        for (size_t i = 0; i < macro_vec.size; i++)
+        {
+            if(word->size == strlen(macro_vec.macros[i]->name) && !memcmp(word->value, macro_vec.macros[i]->name, word->size))
+            {
+                return true;
+            }
+        }
+        return false;
+    case WT_NONE:
+        return true;
+    case WT_OP:
+        switch (word->op)
+        {
+        case OP_DIVISION:
+        case OP_EQUAL:
+        case OP_MINUS:
+        case OP_MULTIPLY:
+        case OP_PLUS:
+        case OP_PRINT:
+        case OP_PRINT_STACK:
+            return true;
+        default:
+            return false;
+        }
+    default:
+        return false;
+    }
+}
+
 //retorna qual tipo de dado o char array representa
 DataType get_data_type(char *str)
 {
@@ -200,7 +414,7 @@ DataType get_data_type(char *str)
 //retorna qual comando da linguagem corth o char array representa
 KeyWord get_keyword(char *str)
 {
-    for (size_t i = 0; i < KEY_WORD_COUNT; i++)
+    for (size_t i = 0; i < KW_COUNT; i++)
     {
         if(!strcmp(key_word[i], str))
         {
@@ -246,11 +460,18 @@ WordType get_word_type(char *str)
             break;
         }
     }
-    for (size_t i = 0; i < KEY_WORD_COUNT; i++)
+    for (size_t i = 0; i < KW_COUNT; i++)
     {
         if(!strcmp(key_word[i], str))
         {
             return WT_KEY_WORD;
+        }
+    }
+    for (size_t i = 0; i < macro_vec.size; i++)
+    {
+        if(!strcmp(macro_vec.macros[i]->name, str))
+        {
+            return WT_MACRO;
         }
     }
     HERE("unknown word");
@@ -328,6 +549,7 @@ int take_next_word(FILE *file, Word *word)
     char c;
     word->value = NULL;
     word->type = WT_NONE;
+    word->size = 0;
     while (true)
     {
         c = getc(file);
@@ -341,6 +563,14 @@ int take_next_word(FILE *file, Word *word)
             return 0;
         default:
             break;
+        }
+
+        if(c == '#')
+        {
+            while (c != '\n')
+            {
+                c = getc(file);
+            }
         }
 
         if(c != ' ' && c != '\n' && c != EOF)
@@ -376,11 +606,20 @@ int take_next_word(FILE *file, Word *word)
                 break;
             case WT_KEY_WORD:
                 word->key_word = get_keyword(str);
+                if(word->key_word == KW_MACRO)
+                {
+                    create_macro(file);
+                }
                 break;
             case WT_OP:
                 word->op = (Op)str[0];
                 break;
             case WT_NONE:
+                break;
+            case WT_MACRO:
+                word->size = str_len;
+                word->value = malloc(word->size + 1);
+                memcpy(word->value, str, word->size + 1);
                 break;
             default:
                 ERROR("unknown word type");
@@ -400,23 +639,28 @@ void start(char *file_path)
 {
     FILE *source_file = fopen(file_path, "r");
     Word word = {0};
+    Word wrd[3] = {0};
     Stack stack = {0};
-    while (take_next_word(source_file, &word) != EOF)
+    int inside_macro = 0;
+    size_t macro_pos = 0;
+    size_t macro_index = 0;
+    while (inside_macro || take_next_word(source_file, &word) != EOF)
     {
-
-        if(word.type == WT_NONE)
+        if(!is_valid_word(&word))
         {
-            continue;
+            ERROR("unknown word");
         }
-        if(word.type == WT_DATA_TYPE)
+        switch (word.type)
         {
+        case WT_NONE:
+            break;
+        case WT_DATA_TYPE:
             stack_push(&stack, &word);
-            continue;
-        }
-        if(word.type == WT_OP)
-        {
-            if(word.op == OP_PRINT)
+            break;
+        case WT_OP:
+            switch (word.op)
             {
+            case OP_PRINT:
                 if(stack.size == 0)
                 {
                     ERROR("stack is empty");
@@ -425,81 +669,96 @@ void start(char *file_path)
                 {
                     ERROR("print only accept DATA_TYPE");
                 }
-                if(stack.item[stack.size - 1]->data_type == DT_INT)
+                switch (stack.item[stack.size - 1]->data_type)
                 {
-                    Word wrd = stack_pop(&stack);
-                    printf("%lld", *(long long *)wrd.value);
-                    free(wrd.value);
-                    continue;
+                case DT_INT:
+                    wrd[0] = stack_pop(&stack);
+                    printf("%lld", *(long long *)wrd[0].value);
+                    free(wrd[0].value);
+                    break;
+                case DT_CHAR:
+                    wrd[0] = stack_pop(&stack);
+                    printf("%c", *(char *)wrd[0].value);
+                    free(wrd[0].value);
+                    break;
+                case DT_STRING:
+                    wrd[0] = stack_pop(&stack);
+                    printf("%s", (char *)wrd[0].value);
+                    free(wrd[0].value);
+                    break;
+                case DT_BOOL:
+                    wrd[0] = stack_pop(&stack);
+                    *(bool *)wrd[0].value ? printf("true") : printf("false");
+                    free(wrd[0].value);
+                    break;
+                case DT_FLOAT:
+                    wrd[0] = stack_pop(&stack);
+                    printf("%.*Lf", (int)float_precision, *(long double *)wrd[0].value);
+                    free(wrd[0].value);
+                    break;
+                default:
+                    ERROR("unknown data type");
+                    break;
                 }
-                if(stack.item[stack.size - 1]->data_type == DT_CHAR)
-                {
-                    Word wrd = stack_pop(&stack);
-                    printf("%c", *(char *)wrd.value);
-                    free(wrd.value);
-                    continue;   
-                }
-                if(stack.item[stack.size - 1]->data_type == DT_STRING)
-                {
-                    Word wrd = stack_pop(&stack);
-                    printf("%s", (char *)wrd.value);
-                    free(wrd.value);
-                    continue;
-                }
-                if(stack.item[stack.size - 1]->data_type == DT_BOOL)
-                {
-                    Word wrd = stack_pop(&stack);
-                    *(bool *)wrd.value ? printf("true") : printf("false");
-                    free(wrd.value);
-                    continue;
-                }
-                if(stack.item[stack.size - 1]->data_type == DT_FLOAT)
-                {
-                    Word wrd = stack_pop(&stack);
-                    printf("%.*Lf", float_precision, *(long double *)wrd.value);
-                    free(wrd.value);
-                    continue;
-                }
-                ERROR("unknown data type");
-            }
-            if(word.op == OP_PLUS)
-            {
+                break;
+            case OP_PLUS:
                 if(stack.size < 2)
                 {
-                    ERROR("neet 2 values to PLUS");
+                    ERROR("require 2 values to PLUS");
                 }
                 if(stack.item[stack.size - 1]->type == WT_DATA_TYPE && stack.item[stack.size - 2]->type == WT_DATA_TYPE)
                 {
                     if(stack.item[stack.size - 1]->data_type == DT_INT && stack.item[stack.size - 1]->data_type == DT_INT)
                     {
-                        Word wrd1, wrd2;
-                        wrd1 = stack_pop(&stack);
-                        wrd2 = stack_pop(&stack);
-                        *(long long *)wrd1.value = *(long long *)wrd1.value + *(long long*)wrd2.value;
-                        stack_push(&stack, &wrd1);
-                        free(wrd1.value);
-                        free(wrd2.value);
-                        continue;
+                        wrd[0], wrd[1];
+                        wrd[0] = stack_pop(&stack);
+                        wrd[1] = stack_pop(&stack);
+                        *(long long *)wrd[0].value = *(long long *)wrd[0].value + *(long long*)wrd[1].value;
+                        stack_push(&stack, &wrd[0]);
+                        free(wrd[0].value);
+                        free(wrd[1].value);
                     }
-                    if(stack.item[stack.size - 1]->data_type == DT_FLOAT && stack.item[stack.size - 2]->data_type == DT_FLOAT)
+                    else if(stack.item[stack.size - 1]->data_type == DT_FLOAT && stack.item[stack.size - 2]->data_type == DT_FLOAT)
                     {
-                        Word wrd1, wrd2;
-                        wrd1 = stack_pop(&stack);
-                        wrd2 = stack_pop(&stack);
-                        *(long double *)wrd1.value = *(long double *)wrd1.value + *(long double *)wrd2.value;
-                        stack_push(&stack, &wrd1);
-                        free(wrd1.value);
-                        free(wrd2.value);
-                        continue;
+                        wrd[0], wrd[1];
+                        wrd[0] = stack_pop(&stack);
+                        wrd[1] = stack_pop(&stack);
+                        *(long double *)wrd[0].value = *(long double *)wrd[0].value + *(long double *)wrd[1].value;
+                        stack_push(&stack, &wrd[0]);
+                        free(wrd[0].value);
+                        free(wrd[1].value);
                     }
-                    ERROR("plus operator error");
+                    else
+                    {
+                        ERROR("plus operator error");
+                    }
                 }
-            }
-            if(word.op == OP_EQUAL)
-            {
-                Word wrd1, wrd2;
-                wrd1 = stack_pop(&stack);
-                wrd2 = stack_pop(&stack);
+                break;
+            case OP_MINUS:
+                UNIMPLEMENTED("OP_MINUS");
+                break;
+            case OP_DIVISION:
+                UNIMPLEMENTED("OP_DIVISION");
+                break;
+            case OP_MULTIPLY:
+                UNIMPLEMENTED("OPMULTIPLY");
+                break;
+            case OP_EQUAL:
+                if(stack.size < 2)
+                {
+                    ERROR("require 2 values to compare");
+                }
+                if(stack.item[stack.size - 1]->type != WT_DATA_TYPE || stack.item[stack.size - 2]->type != WT_DATA_TYPE)
+                {
+                    ERROR("require 2 data types");
+                }
+                if(stack.item[stack.size - 1]->data_type != stack.item[stack.size - 2]->data_type)
+                {
+                    ERROR("require 2 values of the same type");
+                }
+                wrd[0], wrd[1];
+                wrd[0] = stack_pop(&stack);
+                wrd[1] = stack_pop(&stack);
                 
                 Word wrdbool;
                 wrdbool.type = WT_DATA_TYPE;
@@ -507,23 +766,20 @@ void start(char *file_path)
                 wrdbool.size = sizeof(bool);
                 wrdbool.value = malloc(wrdbool.size);
                 
-                if(wrd1.size != wrd2.size)
+                if(wrd[0].size != wrd[1].size)
                 {
                     memcpy(wrdbool.value, &(bool){false}, wrdbool.size);
-                }
-                else if(!memcmp(wrd1.value, wrd2.value, wrd1.size))
-                {
-                    memcpy(wrdbool.value, &(bool){true}, wrdbool.size);
                 }
                 else
                 {
-                    memcpy(wrdbool.value, &(bool){false}, wrdbool.size);
+                    memcpy(wrdbool.value, &(bool){!memcmp(wrd[0].value, wrd[1].value, wrd[0].size)}, wrdbool.size);
                 }
                 stack_push(&stack, &wrdbool);
-                continue;
-            }
-            if(word.op == OP_PRINT_STACK)
-            {
+                free(wrd[0].value);
+                free(wrd[1].value);
+                free(wrdbool.value);
+                break;
+            case OP_PRINT_STACK:
                 if(stack.size == 0)
                 {
                     ERROR("can not print empty stack");
@@ -551,93 +807,42 @@ void start(char *file_path)
                     printf(")\n");
                     if(!i){break;}
                 }
-                continue;
+                break;
+            default:
+                ERROR("unknown OP");
+                break;
             }
-            ERROR("unknown op");
-        }
-        if(word.type == WT_KEY_WORD)
-        {
-            if(word.key_word == KW_DROP)
+            break;
+        case WT_KEY_WORD:
+            switch (word.key_word)
             {
-                if(stack.size == 0)
-                {
-                    ERROR("stack is empty");
-                }
-                Word wrd = stack_pop(&stack);
-                free(word.value);
-                continue;
-            }
-            if(word.key_word == KW_DUP)
-            {
+            case KW_DUP:
                 if(stack.size == 0)
                 {
                     ERROR("stack is empty");
                 }
                 stack_push(&stack, stack.item[stack.size - 1]);
-                continue;
-            }
-            if(word.key_word == KW_SWAP)
-            {
-                if(stack.size < 2)
+                break;
+            case KW_DROP:
+                if(stack.size == 0)
                 {
-                    ERROR("swap require 2 elements in stack");
+                    ERROR("stack is empty");
                 }
-                Word wrd1 = stack_pop(&stack);
-                Word wrd2 = stack_pop(&stack);
-
-                stack_push(&stack, &wrd1);
-                stack_push(&stack, &wrd2);
-            
-                free(wrd1.value);
-                free(wrd2.value);
-                continue;
-            }
-            if(word.key_word == KW_OVER)
-            {
+                wrd[0] = stack_pop(&stack);
+                free(wrd[0].value);
+                break;
+            case KW_OVER:
                 if(stack.size < 2)
                 {
                     ERROR("over require 2 elementes on stack");
                 }
                 stack_push(&stack, stack.item[stack.size - 2]);
-                continue;
-            }
-            if(word.key_word == KW_CAST_CHAR)
-            {
-                if(stack.size == 0)
-                {
-                    ERROR("over require 1 elemente on stack");
-                }
-                if(stack.item[stack.size - 1]->type == WT_DATA_TYPE)
-                {
-                    if(stack.item[stack.size - 1]->data_type == DT_BOOL)
-                    {
-                        stack.item[stack.size - 1]->size = sizeof(char);
-                        stack.item[stack.size - 1]->data_type = DT_CHAR;
-                        stack.item[stack.size - 1]->value = realloc(stack.item[stack.size - 1]->value, stack.item[stack.size - 1]->size);
-                        continue;
-                    }
-                    if(stack.item[stack.size - 1]->data_type == DT_INT)
-                    {
-                        stack.item[stack.size - 1]->size = sizeof(char);
-                        stack.item[stack.size - 1]->data_type = DT_CHAR;
-                        stack.item[stack.size - 1]->value = realloc(stack.item[stack.size - 1]->value, stack.item[stack.size - 1]->size);
-                        continue;
-                    }
-                    if(stack.item[stack.size - 1]->data_type == DT_CHAR)
-                    {
-                        continue;
-                    }
-                    ERROR("unsuported data type");
-                }
-                ERROR("unknown cast");
-            }
-            if(word.key_word == KW_ROT)
-            {
+                break;
+            case KW_ROT:
                 if(stack.size < 3)
                 {
                     ERROR("rot require 3 elements");
                 }
-                Word wrd[3];
                 wrd[0] = stack_pop(&stack);
                 wrd[1] = stack_pop(&stack);
                 wrd[2] = stack_pop(&stack);
@@ -649,10 +854,26 @@ void start(char *file_path)
                 free(wrd[0].value);
                 free(wrd[1].value);
                 free(wrd[2].value);
-                continue;
-            }
-            if(word.key_word == KW_SET_FLOAT_PRECISION)
-            {
+                break;
+            case KW_SWAP:
+                if(stack.size < 2)
+                {
+                    ERROR("swap require 2 elements in stack");
+                }
+                wrd[0] = stack_pop(&stack);
+                wrd[1] = stack_pop(&stack);
+
+                stack_push(&stack, &wrd[0]);
+                stack_push(&stack, &wrd[1]);
+            
+                free(wrd[0].value);
+                free(wrd[1].value);
+                break;
+            case KW_MACRO:
+                break;
+            case KW_END:
+                break;
+            case KW_SET_FLOAT_PRECISION:
                 if(stack.item[stack.size - 1]->type != WT_DATA_TYPE)
                 {
                     ERROR("must be int");
@@ -661,20 +882,157 @@ void start(char *file_path)
                 {
                     ERROR("must be int");
                 }
-                Word wrd = stack_pop(&stack);
-                float_precision = *(long long *)wrd.value;
-                free(wrd.value);
-                continue;
+                wrd[0] = stack_pop(&stack);
+                float_precision = *(long long *)wrd[0].value;
+                free(wrd[0].value);
+                break;
+            case KW_CAST_BOOL:
+                UNIMPLEMENTED("char bool");
+                break;
+            case KW_CAST_CHAR:
+                if(stack.size == 0)
+                {
+                    ERROR("cast to char require 1 elemente on stack");
+                }
+                if(stack.item[stack.size - 1]->type == WT_DATA_TYPE)
+                {
+                    if(stack.item[stack.size - 1]->data_type == DT_BOOL)
+                    {
+                        stack.item[stack.size - 1]->size = sizeof(char);
+                        stack.item[stack.size - 1]->data_type = DT_CHAR;
+                        stack.item[stack.size - 1]->value = realloc(stack.item[stack.size - 1]->value, stack.item[stack.size - 1]->size);
+                    }
+                    else if(stack.item[stack.size - 1]->data_type == DT_INT)
+                    {
+                        stack.item[stack.size - 1]->size = sizeof(char);
+                        stack.item[stack.size - 1]->data_type = DT_CHAR;
+                        stack.item[stack.size - 1]->value = realloc(stack.item[stack.size - 1]->value, stack.item[stack.size - 1]->size);
+                    }
+                        else if(stack.item[stack.size - 1]->data_type == DT_CHAR){}
+                    else
+                    {
+                        ERROR("unsuported data type");
+                    }
+                }
+                else
+                {
+                    ERROR("unknown cast");
+                }
+                break;
+            case KW_CAST_FLOAT:
+                UNIMPLEMENTED("cast float");
+                break;
+            case KW_CAST_INT:
+                if(stack.size == 0)
+                {
+                    ERROR("cast to int require 1 element on stack");
+                }
+                if(stack.item[stack.size - 1]->type == WT_DATA_TYPE)
+                {
+                    if(stack.item[stack.size - 1]->data_type == DT_INT){}
+                    else if(stack.item[stack.size - 1]->data_type == DT_CHAR)
+                    {
+                        stack.item[stack.size - 1]->size = sizeof(long long);
+                        stack.item[stack.size - 1]->data_type = DT_INT;
+                        stack.item[stack.size - 1]->value = realloc(stack.item[stack.size - 1]->value, stack.item[stack.size - 1]->size);
+                        *(long long *)stack.item[stack.size - 1]->value = *(char *)stack.item[stack.size - 1]->value;
+                    }
+                    else if(stack.item[stack.size - 1]->data_type == DT_BOOL)
+                    {
+                        stack.item[stack.size - 1]->size = sizeof(long long);
+                        stack.item[stack.size - 1]->data_type = DT_INT;
+                        stack.item[stack.size - 1]->value = realloc(stack.item[stack.size - 1]->value, stack.item[stack.size - 1]->size);
+                        *(long long *)stack.item[stack.size - 1]->value = *(bool *)stack.item[stack.size - 1]->value;
+                    }
+                    else
+                    {
+                        ERROR("unsuported data type");
+                    }
+                }
+                break;
+            case KW_TRUE:
+                wrd[0].type = WT_DATA_TYPE;
+                wrd[0].data_type = DT_BOOL;
+                wrd[0].size = sizeof(bool);
+                wrd[0].value = malloc(wrd[0].size);
+                memcpy(wrd[0].value, &(bool){true}, wrd[0].size);
+                stack_push(&stack, &wrd[0]);
+                free(wrd[0].value);
+                break;
+            case KW_FALSE:
+                wrd[0].type = WT_DATA_TYPE;
+                wrd[0].data_type = DT_BOOL;
+                wrd[0].size = sizeof(bool);
+                wrd[0].value = malloc(wrd[0].size);
+                memcpy(wrd[0].value, &(bool){false}, wrd[0].size);
+                stack_push(&stack, &wrd[0]);
+                free(wrd[0].value);
+                break;
+            default:
+                ERROR("unknown keyword");
+                break;
             }
-            ERROR("unknown keyword");
+            break;
+        default:
+            break;
         }
-        HERE("unknown type");
-        fprintf(stderr, " typeid: %d\n", (int)word.type);
-        exit(1);
+        if(word.type == WT_MACRO || inside_macro)
+        {
+            for (size_t i = 0; i < macro_vec.size; i++)
+            {
+                if(inside_macro == false)
+                {
+                    if(!strcmp(word.value, macro_vec.macros[i]->name))
+                    {
+                        macro_index = i;
+                        inside_macro++;
+                    }
+                }
+            }
+            if(macro_vec.macros[macro_index]->macro_stack.size == macro_pos)
+            {
+                inside_macro = false;
+                macro_pos = 0;
+            }
+            else 
+            {
+                if(word.value != NULL)
+                {
+                    free(word.value);
+                }
+                word.size = macro_vec.macros[macro_index]->macro_stack.item[macro_pos]->size;
+                word.type = macro_vec.macros[macro_index]->macro_stack.item[macro_pos]->type;
+                if(word.type == WT_OP)
+                {
+                    word.op = macro_vec.macros[macro_index]->macro_stack.item[macro_pos]->op;
+                }
+                else if(word.type == WT_NONE){}
+                else if(word.type == WT_KEY_WORD)
+                {
+                    word.key_word = macro_vec.macros[macro_index]->macro_stack.item[macro_pos]->key_word;
+                }
+                else if(word.type == WT_DATA_TYPE)
+                {
+                    word.data_type = macro_vec.macros[macro_index]->macro_stack.item[macro_pos]->data_type;
+                }
+                word.value = malloc(word.size);
+                if(word.size != 0)
+                {
+                    memcpy(word.value, macro_vec.macros[macro_index]->macro_stack.item[macro_pos]->value, word.size);
+                }
+                macro_pos++;
+            }
+            continue;
+        }
     }
     if(stack.size != 0)
     {
         ERROR("unhandle data on stack");
     }
     fclose(source_file);
+}
+
+void compile()
+{
+    
 }
