@@ -2,6 +2,7 @@
 #define CORTH_H
 
 #include "macros.h"
+#include "syscall.h"
 
 #include <string.h>
 #include <stdbool.h>
@@ -9,8 +10,8 @@
 
 //máximo de dados que podem ser empilhados
 #define MAX_STACK_CAP 1024*200
-
 #define MAX_MACRO_NAMES 1024*100
+#define MAX_NUMBER_OF_STRINGS 1024*200
 
 typedef enum DataType DataType;
 typedef enum Op Op;
@@ -21,6 +22,11 @@ typedef struct Stack Stack;
 typedef struct Word Word;
 typedef struct Macro Macro;
 typedef struct MacroVec MacroVec;
+typedef struct DataTypeStack DataTypeStack;
+typedef struct WordVec WordVec;
+typedef struct String String;
+typedef struct WordVec WordVec;
+
 //tipos de dados aceitos
 enum DataType {
     DT_INT,
@@ -32,8 +38,8 @@ enum DataType {
 
 //operadores aceitos
 enum Op {
-    OP_PLUS = '+',
-    OP_MINUS = '-',
+    OP_ADD = '+',
+    OP_SUB = '-',
     OP_DIVISION = '/',
     OP_MULTIPLY = '*',
     OP_PRINT = '.',
@@ -47,6 +53,7 @@ enum WordType {
     WT_OP,
     WT_KEY_WORD,
     WT_MACRO,
+    WT_SYSCALL,
     WT_NONE = ' ',
     WT_COMMENT = '#'
 };
@@ -58,14 +65,19 @@ enum KeyWord {
     KW_SWAP,
     KW_OVER,
     KW_ROT,
+    
     KW_MACRO,
     KW_END,
-    KW_SET_FLOAT_PRECISION,
+
+    KW_IF,
+    KW_ELSE,
 
     KW_CAST_CHAR,
     KW_CAST_INT,
     KW_CAST_BOOL,
     KW_CAST_FLOAT,
+
+    KW_SYSCALL,
 
     KW_TRUE,
     KW_FALSE,
@@ -80,23 +92,34 @@ struct Stack
     size_t size;
 };
 
+struct DataTypeStack
+{
+    DataType types[MAX_STACK_CAP];
+    size_t size;
+};
+
+void data_type_stack_push(DataTypeStack *dt_stack, DataType *data_type);
+DataType data_type_stack_pop(DataTypeStack *dt_stack);
 
 struct Word
 {
     void *value;
     size_t size;
-    // size_t file_line;
     WordType type;
+    struct
+    {
+        size_t coll, line;
+    }pos;
     union
     {
         Op op;
         DataType data_type;
         KeyWord key_word;
+        Syscall sys_call;
     };
 };
 
-void start(char *path);
-
+void compile(char *path);
 //operaçoes da pilha
 void stack_push(Stack *stack, Word *word);
 Word stack_pop(Stack *stack);
@@ -114,7 +137,23 @@ struct MacroVec
 
 void create_macro(FILE *file);
 void macro_vec_push(Word *word);
+Word macro_vec_get_at(size_t index, size_t pos);
 void clear_macro_vec();
+
+
+struct WordVec
+{
+    Word *words[MAX_NUMBER_OF_STRINGS];
+    size_t size;
+};
+
+void word_vec_push(WordVec *word_vec, Word* str);
+char *word_vec_pop(WordVec *word_vec);
+void word_vec_clear(WordVec *word_vec);
+void word_vec_remove_at(WordVec *word_vec, size_t pos);
+size_t word_vec_get_by_id(WordVec *word_vec, size_t id);
+
+void read_corth_file(FILE *fasm_file, WordVec *word_vec);
 
 static const char const *type_names[] = {
     "int",
@@ -138,19 +177,27 @@ static const char const *key_word[] = {
 
     "macro",
     "end",
-    "set_float_precision",
+
+    "if",
+    "else",
 
     "cast(char)",
     "cast(int)",
     "cast(bool)",
     "cast(float)",
 
+    "syscall",
+
     "true",
     "false"
 };
 
-static MacroVec macro_vec = {0};
 
-static long long float_precision = 5;
+int32_t parse_file(WordVec *word_vec, FILE *file);
+void write_fasm_file(FILE *fasm_file, WordVec *parsed_file);
+Word get_word(char *str);
+bool is_number(char *str);
+bool is_float(char *str);
 
+void write_syscall(FILE *fasm_file, DataTypeStack *data_type_stack, Syscall *syscall);
 #endif /* CORTH_H */

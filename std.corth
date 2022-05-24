@@ -1,7 +1,1 @@
-macro putd cast(int) . end
-macro putc cast(char) . end
-macro \n '\n' . end
-#macro putf cast(float) . end
-#macro putb cast(bool) . end
-
-true false . \n . \n
+1 2 swap . .
