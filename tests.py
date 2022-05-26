@@ -30,7 +30,7 @@ def rec():
                     continue
                 file = file.removesuffix('corth')
                 file = file + 'fasm'
-                subprocess.run(['fasm', file])
+                subprocess.run(['fasm', '-m', '1000000', file])
                 subprocess.run(['touch', file + '.txt'])
                 os.system('./' + file.removesuffix('.fasm') + ' > ' + file + '.txt')
 
@@ -52,7 +52,7 @@ def test():
                     continue
                 file = file.removesuffix('corth')
                 file = file + 'fasm'
-                subprocess.run(['fasm', file])
+                subprocess.run(['fasm','-m', '1000000', file])
                 subprocess.run(['touch', file + '.test.txt'])
                 os.system('./' + file.removesuffix('.fasm') + ' > ' + file + '.test.txt')
                 if compare(file + '.test.txt', file + '.txt') == False:

@@ -89,13 +89,13 @@ enum KeyWord {
 struct Stack
 {
     Word *item[MAX_STACK_CAP];
-    size_t size;
+    uint64_t size;
 };
 
 struct DataTypeStack
 {
     DataType types[MAX_STACK_CAP];
-    size_t size;
+    uint64_t size;
 };
 
 void data_type_stack_push(DataTypeStack *dt_stack, DataType *data_type);
@@ -104,11 +104,11 @@ DataType data_type_stack_pop(DataTypeStack *dt_stack);
 struct Word
 {
     void *value;
-    size_t size;
+    uint64_t size, id;
     WordType type;
     struct
     {
-        size_t coll, line;
+        uint64_t coll, line;
     }pos;
     union
     {
@@ -132,26 +132,26 @@ struct Macro
 struct MacroVec
 {
     Macro *macros[MAX_MACRO_NAMES];
-    size_t size;
+    uint64_t size;
 };
 
 void create_macro(FILE *file);
 void macro_vec_push(Word *word);
-Word macro_vec_get_at(size_t index, size_t pos);
+Word macro_vec_get_at(uint64_t index, uint64_t pos);
 void clear_macro_vec();
 
 
 struct WordVec
 {
     Word *words[MAX_NUMBER_OF_STRINGS];
-    size_t size;
+    uint64_t size;
 };
 
 void word_vec_push(WordVec *word_vec, Word* str);
 char *word_vec_pop(WordVec *word_vec);
 void word_vec_clear(WordVec *word_vec);
-void word_vec_remove_at(WordVec *word_vec, size_t pos);
-size_t word_vec_get_by_id(WordVec *word_vec, size_t id);
+void word_vec_remove_at(WordVec *word_vec, uint64_t pos);
+uint64_t word_vec_get_by_id(WordVec *word_vec, uint64_t id);
 
 void read_corth_file(FILE *fasm_file, WordVec *word_vec);
 
@@ -198,6 +198,7 @@ void write_fasm_file(FILE *fasm_file, WordVec *parsed_file);
 Word get_word(char *str);
 bool is_number(char *str);
 bool is_float(char *str);
-
+void create_if_block(WordVec *parsed_file, uint64_t *i);
+void create_blocks(WordVec *parsed_file);
 void write_syscall(FILE *fasm_file, DataTypeStack *data_type_stack, Syscall *syscall);
 #endif /* CORTH_H */

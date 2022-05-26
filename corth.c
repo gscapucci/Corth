@@ -2,7 +2,7 @@
 
 void escape_str(char *str)
 {
-    for (size_t i = 0; i < strlen(str); i++)
+    for (uint64_t i = 0; i < strlen(str); i++)
     {
         if(str[i] == '\\')
         {
@@ -42,7 +42,7 @@ void escape_str(char *str)
                 ERROR("trying to escape inescapable");
                 break;
             }
-            for (size_t j = i + 1; j < strlen(str); j++)
+            for (uint64_t j = i + 1; j < strlen(str); j++)
             {
                 str[j] = str[j + 1];
             }
@@ -54,6 +54,7 @@ int32_t parse_file(WordVec *word_vec, FILE *file)
 {
     char str[1024] = {0};
     uint16_t str_len = 0;
+    uint64_t id = 0;
     char c;
     Word word = {0};
     while(true)
@@ -86,8 +87,10 @@ int32_t parse_file(WordVec *word_vec, FILE *file)
                     ERROR("lengh of char must be one");
                 }
                 word = get_word(str);
+                word.id = id;
+                id++;
                 word_vec_push(word_vec, &word);
-                for (size_t i = 0; str[i] != 0; i++)
+                for (uint64_t i = 0; str[i] != 0; i++)
                 {
                     str[i] = 0;
                 }
@@ -114,8 +117,10 @@ int32_t parse_file(WordVec *word_vec, FILE *file)
                 str[str_len++] = c;
                 escape_str(str);
                 word = get_word(str);
+                word.id = id;
+                id++;
                 word_vec_push(word_vec, &word);
-                for (size_t i = 0; str[i] != 0; i++)
+                for (uint64_t i = 0; str[i] != 0; i++)
                 {
                     str[i] = 0;
                 }
@@ -136,8 +141,10 @@ int32_t parse_file(WordVec *word_vec, FILE *file)
         if(str_len > 0)
         {
             word = get_word(str);   
+            word.id = id;
+            id++;
             word_vec_push(word_vec, &word);
-            for (size_t i = 0; str[i] != 0; i++)
+            for (uint64_t i = 0; str[i] != 0; i++)
             {
                 str[i] = 0;
             }
@@ -198,7 +205,7 @@ void word_vec_push(WordVec *word_vec, Word* word)
 
 void word_vec_clear(WordVec *word_vec)
 {
-    for (size_t i = 0; i < word_vec->size; i++)
+    for (uint64_t i = 0; i < word_vec->size; i++)
     {
         free(word_vec->words[i]->value);
         free(word_vec->words[i]);
@@ -226,7 +233,7 @@ DataType data_type_stack_pop(DataTypeStack *dt_stack)
 
 bool is_number(char *str)
 {
-    for (size_t i = 0; i < strlen(str); i++)
+    for (uint64_t i = 0; i < strlen(str); i++)
     {
         if(str[i] < '0' || str[i] > '9')
         {
@@ -243,7 +250,7 @@ bool is_float(char *str)
     {
         return false;
     }
-    for (size_t i = 0; i < strlen(str); i++)
+    for (uint64_t i = 0; i < strlen(str); i++)
     {
         if(str[i] == '.')
         {
@@ -264,7 +271,7 @@ bool is_float(char *str)
 Word get_word(char *str)
 {
     Word word;
-    for (size_t i = 0; i < KW_COUNT; i++)
+    for (uint64_t i = 0; i < KW_COUNT; i++)
     {
         if(!strcmp(str, key_word[i]))
         {
@@ -275,7 +282,7 @@ Word get_word(char *str)
             return word;
         }
     }
-    for (size_t i = 0; i < SYSCALL_COUNT; i++)
+    for (uint64_t i = 0; i < SYSCALL_COUNT; i++)
     {
         if(!strcmp(str, syscalls[i]))
         {
@@ -290,9 +297,9 @@ Word get_word(char *str)
     {
         word.type = WT_DATA_TYPE;
         word.data_type = DT_INT;
-        word.size = sizeof(long long);
+        word.size = sizeof(uint64_t);
         word.value = malloc(word.size);
-        memcpy(word.value, &(long long){strtoll(str, NULL, 10)}, word.size);
+        memcpy(word.value, &(uint64_t){strtoull(str, NULL, 10)}, word.size);
         return word;
     }
     if(is_float(str))
@@ -352,11 +359,68 @@ Word get_word(char *str)
     ERROR("unknown word");
 }
 
+void create_if_block(WordVec *parsed_file, uint64_t *i)
+{
+    uint64_t if_index = *i;
+    parsed_file->words[if_index]->value = malloc(sizeof(uint64_t));
+    while (true)
+    {
+        (*i)++;
+        if(*i >= parsed_file->size)
+        {
+            ERROR("unclosed if");
+        }
+        if(parsed_file->words[*i]->type == WT_KEY_WORD && parsed_file->words[*i]->key_word == KW_IF)
+        {
+            create_if_block(parsed_file, i);
+        }
+        if(parsed_file->words[*i]->type == WT_KEY_WORD && (parsed_file->words[*i]->key_word == KW_ELSE || parsed_file->words[*i]->key_word == KW_END))
+        {
+            memcpy(parsed_file->words[if_index]->value, i, sizeof(uint64_t));
+            if(parsed_file->words[*i]->key_word == KW_ELSE)
+            {
+                uint64_t else_index = *i;
+                parsed_file->words[else_index]->value = malloc(sizeof(uint64_t));
+                while (true)
+                {
+                    (*i)++;
+                    if(*i >= parsed_file->size)
+                    {
+                        ERROR("unclosed if");
+                    }
+                    if(parsed_file->words[*i]->type == WT_KEY_WORD && parsed_file->words[*i]->key_word == KW_IF)
+                    {
+                        create_if_block(parsed_file, i);
+                    }
+                    if(parsed_file->words[*i]->type == WT_KEY_WORD && parsed_file->words[*i]->key_word == KW_END)
+                    {
+                        memcpy(parsed_file->words[else_index]->value, i, sizeof(uint64_t));
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+    }
+}
+
+void create_blocks(WordVec *parsed_file)
+{
+    for (uint64_t i = 0; i < parsed_file->size; i++)
+    {
+        if(parsed_file->words[i]->type == WT_KEY_WORD && parsed_file->words[i]->key_word == KW_IF)
+        {
+            create_if_block(parsed_file, &i);
+        }
+    }
+}
+
 void write_fasm_file(FILE *fasm_file, WordVec *parsed_file)
 {
     static DataTypeStack data_type_stack = {0};
     DataType aux[3] = {0};
-    for (size_t i = 0; i < parsed_file->size; i++)
+    uint64_t stack_size = 0;
+    for (uint64_t i = 0; i < parsed_file->size; i++)
     {
         switch (parsed_file->words[i]->type)
         {
@@ -370,15 +434,15 @@ void write_fasm_file(FILE *fasm_file, WordVec *parsed_file)
                 UNIMPLEMENTED("DT_BOOL");
                 break;
             case DT_CHAR:
-                fprintf(fasm_file, ";;--PUSH_CHAR ascii(%lld)--;;\n", (long long)*(char *)parsed_file->words[i]->value);
-                fprintf(fasm_file, "    push %lld\n", (long long)*(char *)parsed_file->words[i]->value);
+                fprintf(fasm_file, ";;--PUSH_CHAR ascii(%zu)--;;\n", (uint64_t)*(char *)parsed_file->words[i]->value);
+                fprintf(fasm_file, "    push %zu\n", (uint64_t)*(char *)parsed_file->words[i]->value);
                 break;
             case DT_FLOAT:
                 UNIMPLEMENTED("DT_FLOAT");
                 break;
             case DT_INT:
-                fprintf(fasm_file, ";;--PUSH_INT %lld--;;\n", *(long long *)parsed_file->words[i]->value);
-                fprintf(fasm_file, "    mov rax, %lld\n", *(long long *)parsed_file->words[i]->value);
+                fprintf(fasm_file, ";;--PUSH_INT %zu--;;\n", *(uint64_t *)parsed_file->words[i]->value);
+                fprintf(fasm_file, "    mov rax, %zu\n", *(uint64_t *)parsed_file->words[i]->value);
                 fprintf(fasm_file, "    push rax\n");
                 break;
             case DT_STRING:
@@ -402,11 +466,32 @@ void write_fasm_file(FILE *fasm_file, WordVec *parsed_file)
                 break;
             case KW_IF:
                 aux[0] = data_type_stack_pop(&data_type_stack);
+                stack_size = data_type_stack.size;
                 if(aux[0] != DT_BOOL)
                 {
                     ERROR("expect bool");
                 }
-                UNIMPLEMENTED("KW_IF");
+                fprintf(fasm_file, ";;--KW_IF--;;\n");
+                fprintf(fasm_file, "    pop rax\n");
+                fprintf(fasm_file, "    cmp rax, 0\n");
+                fprintf(fasm_file, "    je false_%zu\n", *(uint64_t *)parsed_file->words[i]->value);
+                break;
+            case KW_END:
+                if(stack_size != data_type_stack.size)
+                {
+                    ERROR("stack size after and before if must be equal");
+                }
+                fprintf(fasm_file, ";;--KW_END--;;\n");
+                fprintf(fasm_file, "false_%zu:\n", i);
+                break;
+            case KW_ELSE:
+                if(stack_size != data_type_stack.size)
+                {
+                    ERROR("stack size after and before if must be equal");
+                }
+                fprintf(fasm_file, ";;--KW_ELSE--;;\n");
+                fprintf(fasm_file, "    jmp false_%zu\n", *(uint64_t *)parsed_file->words[i]->value);
+                fprintf(fasm_file, "false_%zu:\n", i);
                 break;
             case KW_DROP:
                 aux[0] = data_type_stack_pop(&data_type_stack);
@@ -419,8 +504,63 @@ void write_fasm_file(FILE *fasm_file, WordVec *parsed_file)
                 fprintf(fasm_file, "    pop rax\n");
                 fprintf(fasm_file, "    push rax\n");
                 fprintf(fasm_file, "    push rax\n");
-                data_type_stack_push(&data_type_stack, &(DataType){aux[0]});
-                data_type_stack_push(&data_type_stack, &(DataType){aux[0]});
+                data_type_stack_push(&data_type_stack, &aux[0]);
+                data_type_stack_push(&data_type_stack, &aux[0]);
+                break;
+            case KW_SWAP:
+                if(data_type_stack.size < 2)
+                {
+                    ERROR("swap require 2 elements");
+                }
+                aux[0] = data_type_stack_pop(&data_type_stack);
+                aux[1] = data_type_stack_pop(&data_type_stack);
+                fprintf(fasm_file, ";;--KW_SWAP--;;\n");
+                fprintf(fasm_file, "    pop rax\n");
+                fprintf(fasm_file, "    pop rbx\n");
+                fprintf(fasm_file, "    push rax\n");
+                fprintf(fasm_file, "    push rbx\n");
+                data_type_stack_push(&data_type_stack, &aux[0]);
+                data_type_stack_push(&data_type_stack, &aux[1]);
+                break;
+            case KW_OVER:
+                if(data_type_stack.size < 2)
+                {
+                    ERROR("over require 2 elements");
+                }
+                aux[0] = data_type_stack_pop(&data_type_stack);
+                aux[1] = data_type_stack_pop(&data_type_stack);
+                fprintf(fasm_file, ";;--KW_OVER--;;\n");
+                fprintf(fasm_file, "    pop rax\n");
+                fprintf(fasm_file, "    pop rbx\n");
+                fprintf(fasm_file, "    push rbx\n");
+                fprintf(fasm_file, "    push rax\n");
+                fprintf(fasm_file, "    push rbx\n");
+                data_type_stack_push(&data_type_stack, &aux[1]);
+                data_type_stack_push(&data_type_stack, &aux[0]);
+                data_type_stack_push(&data_type_stack, &aux[1]);
+                break;
+            case KW_ROT:
+                if(data_type_stack.size < 3)
+                {
+                    ERROR("rot require 3 elements");
+                }
+                aux[0] = data_type_stack_pop(&data_type_stack);
+                aux[1] = data_type_stack_pop(&data_type_stack);
+                aux[2] = data_type_stack_pop(&data_type_stack);
+                fprintf(fasm_file, ";;--KW_ROT--;;\n");
+                fprintf(fasm_file, "    pop rax\n");
+                fprintf(fasm_file, "    pop rbx\n");
+                fprintf(fasm_file, "    pop rcx\n");
+                fprintf(fasm_file, "    push rbx\n");
+                fprintf(fasm_file, "    push rax\n");
+                fprintf(fasm_file, "    push rcx\n");
+                data_type_stack_push(&data_type_stack, &aux[1]);
+                data_type_stack_push(&data_type_stack, &aux[0]);
+                data_type_stack_push(&data_type_stack, &aux[2]);
+                break;
+            case KW_CAST_INT:
+                (void)data_type_stack_pop(&data_type_stack);
+                data_type_stack_push(&data_type_stack, &(DataType){DT_INT});
                 break;
             default:
                 fprintf(stderr, "%d ", parsed_file->words[i]->key_word);
@@ -523,10 +663,13 @@ void write_fasm_file(FILE *fasm_file, WordVec *parsed_file)
                 aux[0] = data_type_stack_pop(&data_type_stack);
                 aux[1] = data_type_stack_pop(&data_type_stack);
                 fprintf(fasm_file, ";;--OP_EQUAL--;;\n");
-                fprintf(fasm_file, "    pop rdi\n");
+                fprintf(fasm_file, "    mov rcx, 0\n");
+                fprintf(fasm_file, "    mov rdx, 1\n");
                 fprintf(fasm_file, "    pop rax\n");
-                fprintf(fasm_file, "    xor rax, rdi\n");
-                fprintf(fasm_file, "    push rax\n");
+                fprintf(fasm_file, "    pop rbx\n");
+                fprintf(fasm_file, "    cmp rax, rbx\n");
+                fprintf(fasm_file, "    cmove rcx, rdx\n");
+                fprintf(fasm_file, "    push rcx\n");
                 data_type_stack_push(&data_type_stack, &(DataType){DT_BOOL});
                 break;
             case OP_DIVISION:
@@ -563,7 +706,8 @@ void compile(char *path)
     FILE *corth_file = fopen(path, "r");
 
     parse_file(&parsed_file, corth_file);
-
+    create_blocks(&parsed_file);
+    // type_check();
     fprintf(fasm_file, "format ELF64 executable 3\n");
     fprintf(fasm_file, "segment readable executable\n");
 
@@ -616,7 +760,7 @@ void compile(char *path)
 
 Syscall get_syscall(char *str)
 {
-    for (size_t i = 0; i < SYSCALL_COUNT; i++)
+    for (uint64_t i = 0; i < SYSCALL_COUNT; i++)
     {
         if(strlen(str) == strlen(syscalls[i]) && strcmp(str, syscalls[i]) == 0)
         {

@@ -45,15 +45,6 @@ main:
     push rbx
     push rax
     push rbx
-;;--KW_OVER--;;
-    pop rax
-    pop rbx
-    push rbx
-    push rax
-    push rbx
-;;--PRINT_INT--;;
-    pop rdi
-    call dump
 ;;--PRINT_INT--;;
     pop rdi
     call dump
@@ -72,6 +63,15 @@ main:
 ;;--PUSH_INT 3--;;
     mov rax, 3
     push rax
+;;--PUSH_INT 4--;;
+    mov rax, 4
+    push rax
+;;--KW_OVER--;;
+    pop rax
+    pop rbx
+    push rbx
+    push rax
+    push rbx
 ;;--KW_OVER--;;
     pop rax
     pop rbx
@@ -84,27 +84,6 @@ main:
     push rbx
     push rax
     push rbx
-;;--PRINT_INT--;;
-    pop rdi
-    call dump
-;;--PRINT_INT--;;
-    pop rdi
-    call dump
-;;--PRINT_INT--;;
-    pop rdi
-    call dump
-;;--PRINT_INT--;;
-    pop rdi
-    call dump
-;;--PRINT_INT--;;
-    pop rdi
-    call dump
-;;--PUSH_INT 1--;;
-    mov rax, 1
-    push rax
-;;--PUSH_INT 2--;;
-    mov rax, 2
-    push rax
 ;;--KW_OVER--;;
     pop rax
     pop rbx
@@ -114,21 +93,18 @@ main:
 ;;--PRINT_INT--;;
     pop rdi
     call dump
-;;--KW_OVER--;;
-    pop rax
-    pop rbx
-    push rbx
-    push rax
-    push rbx
 ;;--PRINT_INT--;;
     pop rdi
     call dump
-;;--KW_OVER--;;
-    pop rax
-    pop rbx
-    push rbx
-    push rax
-    push rbx
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
 ;;--PRINT_INT--;;
     pop rdi
     call dump

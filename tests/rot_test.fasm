@@ -39,96 +39,87 @@ main:
 ;;--PUSH_INT 2--;;
     mov rax, 2
     push rax
-;;--KW_OVER--;;
-    pop rax
-    pop rbx
-    push rbx
-    push rax
-    push rbx
-;;--KW_OVER--;;
-    pop rax
-    pop rbx
-    push rbx
-    push rax
-    push rbx
-;;--PRINT_INT--;;
-    pop rdi
-    call dump
-;;--PRINT_INT--;;
-    pop rdi
-    call dump
-;;--PRINT_INT--;;
-    pop rdi
-    call dump
-;;--PRINT_INT--;;
-    pop rdi
-    call dump
-;;--PUSH_INT 1--;;
-    mov rax, 1
-    push rax
-;;--PUSH_INT 2--;;
-    mov rax, 2
-    push rax
 ;;--PUSH_INT 3--;;
     mov rax, 3
     push rax
-;;--KW_OVER--;;
+;;--KW_ROT--;;
     pop rax
     pop rbx
+    pop rcx
     push rbx
     push rax
-    push rbx
-;;--KW_OVER--;;
+    push rcx
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--PUSH_INT 4--;;
+    mov rax, 4
+    push rax
+;;--PUSH_INT 5--;;
+    mov rax, 5
+    push rax
+;;--PUSH_INT 6--;;
+    mov rax, 6
+    push rax
+;;--KW_ROT--;;
     pop rax
     pop rbx
+    pop rcx
     push rbx
     push rax
-    push rbx
-;;--PRINT_INT--;;
-    pop rdi
-    call dump
-;;--PRINT_INT--;;
-    pop rdi
-    call dump
-;;--PRINT_INT--;;
-    pop rdi
-    call dump
-;;--PRINT_INT--;;
-    pop rdi
-    call dump
-;;--PRINT_INT--;;
-    pop rdi
-    call dump
-;;--PUSH_INT 1--;;
-    mov rax, 1
-    push rax
-;;--PUSH_INT 2--;;
-    mov rax, 2
-    push rax
-;;--KW_OVER--;;
+    push rcx
+;;--KW_ROT--;;
     pop rax
     pop rbx
+    pop rcx
     push rbx
     push rax
-    push rbx
+    push rcx
 ;;--PRINT_INT--;;
     pop rdi
     call dump
-;;--KW_OVER--;;
-    pop rax
-    pop rbx
-    push rbx
-    push rax
-    push rbx
 ;;--PRINT_INT--;;
     pop rdi
     call dump
-;;--KW_OVER--;;
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--PUSH_INT 7--;;
+    mov rax, 7
+    push rax
+;;--PUSH_INT 8--;;
+    mov rax, 8
+    push rax
+;;--PUSH_INT 9--;;
+    mov rax, 9
+    push rax
+;;--KW_ROT--;;
     pop rax
     pop rbx
+    pop rcx
     push rbx
     push rax
+    push rcx
+;;--KW_ROT--;;
+    pop rax
+    pop rbx
+    pop rcx
     push rbx
+    push rax
+    push rcx
+;;--KW_ROT--;;
+    pop rax
+    pop rbx
+    pop rcx
+    push rbx
+    push rax
+    push rcx
 ;;--PRINT_INT--;;
     pop rdi
     call dump
