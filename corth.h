@@ -38,13 +38,19 @@ enum DataType {
 
 //operadores aceitos
 enum Op {
-    OP_ADD = '+',
-    OP_SUB = '-',
-    OP_DIVISION = '/',
-    OP_MULTIPLY = '*',
-    OP_PRINT = '.',
-    OP_EQUAL = '=',
-    OP_PRINT_STACK = '?'
+    OP_ADD,
+    OP_SUB,
+    OP_DIVMOD,
+    OP_MULTIPLY,
+    OP_PRINT,
+    OP_EQUAL,
+    OP_LESS,
+    OP_GREAT,
+    OP_LESS_EQUAL,
+    OP_GREAT_EQUAL,
+    OP_NOT,
+    OP_PRINT_STACK,
+    OP_COUNT
 };
 
 //tipos de palavras
@@ -192,7 +198,20 @@ static const char const *key_word[] = {
     "false"
 };
 
-
+static const char const *ops[] = {
+    "+",
+    "-",
+    "/%",
+    "*",
+    ".",
+    "=",
+    "<",
+    ">",
+    "<=",
+    ">=",
+    "!",
+    "?"
+};
 int32_t parse_file(WordVec *word_vec, FILE *file);
 void write_fasm_file(FILE *fasm_file, WordVec *parsed_file);
 Word get_word(char *str);
@@ -201,4 +220,5 @@ bool is_float(char *str);
 void create_if_block(WordVec *parsed_file, uint64_t *i);
 void create_blocks(WordVec *parsed_file);
 void write_syscall(FILE *fasm_file, DataTypeStack *data_type_stack, Syscall *syscall);
+void print_parsed_file(WordVec *word_vec);
 #endif /* CORTH_H */

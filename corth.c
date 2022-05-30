@@ -130,7 +130,7 @@ int32_t parse_file(WordVec *word_vec, FILE *file)
         }
         if(c == '#')
         {
-            while ((c = getc(file)) != '\n');
+            while ((c = getc(file)) != '\n' && c != EOF);
         }
         if(c != ' ' && c != '\n' && c != EOF)
         {
@@ -271,6 +271,17 @@ bool is_float(char *str)
 Word get_word(char *str)
 {
     Word word;
+    for (uint64_t i = 0; i < OP_COUNT; i++)
+    {
+        if(!strcmp(str, ops[i]))
+        {
+            word.type = WT_OP;
+            word.op = (Op)i;
+            word.size = 0;
+            word.value = NULL;
+            return word;
+        }
+    }
     for (uint64_t i = 0; i < KW_COUNT; i++)
     {
         if(!strcmp(str, key_word[i]))
@@ -309,33 +320,6 @@ Word get_word(char *str)
         word.size = sizeof(long double);
         word.value = malloc(word.size);
         memcpy(word.value, &(long double){strtold(str, NULL)}, word.size);
-        return word;
-    }
-    if(strlen(str) == 1)
-    {
-        if(str[0] == ' ')
-        {
-            ERROR("Not expected none");
-        }
-        word.type = WT_OP;
-        switch (str[0])
-        {
-        case OP_DIVISION:
-        case OP_EQUAL:
-        case OP_SUB:
-        case OP_MULTIPLY:
-        case OP_ADD:
-        case OP_PRINT:
-        case OP_PRINT_STACK:
-            word.op = (Op)str[0];
-            break;
-        default:
-            fprintf(stderr, "%s ", str);
-            ERROR("unknown op");
-            break;
-        }
-        word.size = 0;
-        word.value = NULL;
         return word;
     }
     if(strlen(str) == 3 && (str[0] == '\'' && str[2] == '\''))
@@ -395,11 +379,13 @@ void create_if_block(WordVec *parsed_file, uint64_t *i)
                     if(parsed_file->words[*i]->type == WT_KEY_WORD && parsed_file->words[*i]->key_word == KW_END)
                     {
                         memcpy(parsed_file->words[else_index]->value, i, sizeof(uint64_t));
-                        break;
+                        (*i)++;
+                        return;
                     }
                 }
-                break;
             }
+            (*i)++;
+            return;
         }
     }
 }
@@ -559,8 +545,27 @@ void write_fasm_file(FILE *fasm_file, WordVec *parsed_file)
                 data_type_stack_push(&data_type_stack, &aux[2]);
                 break;
             case KW_CAST_INT:
-                (void)data_type_stack_pop(&data_type_stack);
+                switch(data_type_stack_pop(&data_type_stack))
+                {
+                    case DT_INT:
+                    case DT_CHAR:
+                    case DT_BOOL:
+                        break;
+                    default:
+                        ERROR("invalid cast to int");
+                        break;
+                }
                 data_type_stack_push(&data_type_stack, &(DataType){DT_INT});
+                break;
+            case KW_FALSE:
+                fprintf(fasm_file, ";;--KW_FALSE--;;\n");
+                fprintf(fasm_file, "    push 0");
+                data_type_stack_push(&data_type_stack, &(DataType){DT_BOOL});
+                break;
+            case KW_TRUE:
+                fprintf(fasm_file, ";;--KW_TRUE--;;\n");
+                fprintf(fasm_file, "    push 1");
+                data_type_stack_push(&data_type_stack, &(DataType){DT_BOOL});
                 break;
             default:
                 fprintf(stderr, "%d ", parsed_file->words[i]->key_word);
@@ -662,6 +667,10 @@ void write_fasm_file(FILE *fasm_file, WordVec *parsed_file)
             case OP_EQUAL:
                 aux[0] = data_type_stack_pop(&data_type_stack);
                 aux[1] = data_type_stack_pop(&data_type_stack);
+                if(aux[0] != DT_INT || aux[1] != DT_INT)
+                {
+                    ERROR("can only compare integers");
+                }
                 fprintf(fasm_file, ";;--OP_EQUAL--;;\n");
                 fprintf(fasm_file, "    mov rcx, 0\n");
                 fprintf(fasm_file, "    mov rdx, 1\n");
@@ -672,11 +681,94 @@ void write_fasm_file(FILE *fasm_file, WordVec *parsed_file)
                 fprintf(fasm_file, "    push rcx\n");
                 data_type_stack_push(&data_type_stack, &(DataType){DT_BOOL});
                 break;
-            case OP_DIVISION:
-                UNIMPLEMENTED("OP_DIVISION");
+            case OP_DIVMOD:
+                UNIMPLEMENTED("OP_DIVMOD");
                 break;
             case OP_MULTIPLY:
                 UNIMPLEMENTED("OP_MULTIPLY");
+                break;
+            case OP_GREAT:
+                aux[0] = data_type_stack_pop(&data_type_stack);
+                aux[1] = data_type_stack_pop(&data_type_stack);
+                if(aux[0] != DT_INT || aux[1] != DT_INT)
+                {
+                    ERROR("can only compare integers");
+                }
+                fprintf(fasm_file, ";;--OP_GREAT--;;\n");
+                fprintf(fasm_file, "    mov rcx, 0\n");
+                fprintf(fasm_file, "    mov rdx, 1\n");
+                fprintf(fasm_file, "    pop rax\n");
+                fprintf(fasm_file, "    pop rbx\n");
+                fprintf(fasm_file, "    cmp rbx, rax\n");
+                fprintf(fasm_file, "    cmovg rcx, rdx\n");
+                fprintf(fasm_file, "    push rcx\n");
+                data_type_stack_push(&data_type_stack, &(DataType){DT_BOOL});
+                break;
+            case OP_GREAT_EQUAL:
+                aux[0] = data_type_stack_pop(&data_type_stack);
+                aux[1] = data_type_stack_pop(&data_type_stack);
+                if(aux[0] != DT_INT || aux[1] != DT_INT)
+                {
+                    ERROR("can only compare integers");
+                }
+                fprintf(fasm_file, ";;--OP_GREAT--;;\n");
+                fprintf(fasm_file, "    mov rcx, 0\n");
+                fprintf(fasm_file, "    mov rdx, 1\n");
+                fprintf(fasm_file, "    pop rax\n");
+                fprintf(fasm_file, "    pop rbx\n");
+                fprintf(fasm_file, "    cmp rbx, rax\n");
+                fprintf(fasm_file, "    cmovge rcx, rdx\n");
+                fprintf(fasm_file, "    push rcx\n");
+                data_type_stack_push(&data_type_stack, &(DataType){DT_BOOL});
+                break;
+            case OP_LESS:
+                aux[0] = data_type_stack_pop(&data_type_stack);
+                aux[1] = data_type_stack_pop(&data_type_stack);
+                if(aux[0] != DT_INT || aux[1] != DT_INT)
+                {
+                    ERROR("can only compare integers");
+                }
+                fprintf(fasm_file, ";;--OP_LESS--;;\n");
+                fprintf(fasm_file, "    mov rcx, 0\n");
+                fprintf(fasm_file, "    mov rdx, 1\n");
+                fprintf(fasm_file, "    pop rax\n");
+                fprintf(fasm_file, "    pop rbx\n");
+                fprintf(fasm_file, "    cmp rbx, rax\n");
+                fprintf(fasm_file, "    cmovl rcx, rdx\n");
+                fprintf(fasm_file, "    push rcx");
+                data_type_stack_push(&data_type_stack, &(DataType){DT_BOOL});
+                break;
+            case OP_LESS_EQUAL:
+                aux[0] = data_type_stack_pop(&data_type_stack);
+                aux[1] = data_type_stack_pop(&data_type_stack);
+                if(aux[0] != DT_INT || aux[1] != DT_INT)
+                {
+                    ERROR("can only compare integers");
+                }
+                fprintf(fasm_file, ";;--OP_LESS--;;\n");
+                fprintf(fasm_file, "    mov rcx, 0\n");
+                fprintf(fasm_file, "    mov rdx, 1\n");
+                fprintf(fasm_file, "    pop rax\n");
+                fprintf(fasm_file, "    pop rbx\n");
+                fprintf(fasm_file, "    cmp rbx, rax\n");
+                fprintf(fasm_file, "    cmovle rcx, rdx\n");
+                fprintf(fasm_file, "    push rcx");
+                data_type_stack_push(&data_type_stack, &(DataType){DT_BOOL});
+                break;
+            case OP_NOT:
+                aux[0] = data_type_stack_pop(&data_type_stack);
+                if(aux[0] != DT_BOOL)
+                {
+                    ERROR("expect bool");
+                }
+                fprintf(fasm_file, ";;--OP_NOT--;;\n");
+                fprintf(fasm_file, "    mov rcx, 0\n");
+                fprintf(fasm_file, "    mov rdx, 1\n");
+                fprintf(fasm_file, "    pop rax\n");
+                fprintf(fasm_file, "    cmp rax, rcx\n");
+                fprintf(fasm_file, "    cmove rcx, rdx\n");
+                fprintf(fasm_file, "    push rcx\n");
+                data_type_stack_push(&data_type_stack, &(DataType){DT_BOOL});
                 break;
             default:
                 ERROR("unknown op");
@@ -706,6 +798,7 @@ void compile(char *path)
     FILE *corth_file = fopen(path, "r");
 
     parse_file(&parsed_file, corth_file);
+    // print_parsed_file(&parsed_file);
     create_blocks(&parsed_file);
     // type_check();
     fprintf(fasm_file, "format ELF64 executable 3\n");
@@ -785,6 +878,7 @@ void write_syscall(FILE *fasm_file, DataTypeStack *data_type_stack, Syscall *sys
         UNIMPLEMENTED("2 args syscall");
         break;
     case 3:
+        UNIMPLEMENTED("3 args syscall");
         // data_type_stack_pop(data_type_stack);
         // data_type_stack_pop(data_type_stack);
         // data_type_stack_pop(data_type_stack);
@@ -806,5 +900,66 @@ void write_syscall(FILE *fasm_file, DataTypeStack *data_type_stack, Syscall *sys
     default:
         ERROR();
         break;
+    }
+}
+
+void print_parsed_file(WordVec *word_vec)
+{
+    for (uint64_t i = 0; i < word_vec->size; i++)
+    {
+        switch (word_vec->words[i]->type)
+        {
+        case WT_COMMENT:
+            // printf("[%zu] = WT_COMMENT\n", i);
+            break;
+        case WT_DATA_TYPE:  
+            switch (word_vec->words[i]->data_type)
+            {
+            case DT_INT:
+                printf("[%zu] = DT_INT\n", i);
+                break;
+            case DT_CHAR:
+                printf("[%zu] = DT_CHAR\n", i);
+                break;
+            case DT_BOOL:
+                printf("[%zu] = DT_BOOL\n", i);
+                break;
+            default:
+                // ERROR("unknow data type");
+                break;
+            }
+            break;
+        case WT_KEY_WORD:
+            switch (word_vec->words[i]->key_word)
+            {
+            case KW_IF:
+                printf("[%zu] = KW_IF\n", i);
+                break;
+            case KW_ELSE:
+                printf("[%zu] = KW_ELSE\n", i);
+                break;
+            case KW_END:
+                printf("[%zu] = KW_END\n", i);
+                break;
+            default:
+                break;
+            }
+            break;
+        case WT_MACRO:
+            // UNIMPLEMENTED("WT_MACRO");
+            break;
+        case WT_NONE:
+            // UNIMPLEMENTED("WT_NONE");
+            break;
+        case WT_OP:
+            // UNIMPLEMENTED("WT_OP");
+            break;
+        case WT_SYSCALL:
+            // UNIMPLEMENTED("WT_SYSCALL");
+            break;
+        default:
+            // ERROR("unkown word type");
+            break;
+        }
     }
 }

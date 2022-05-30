@@ -87,7 +87,7 @@ false_10:
 ;;--KW_END--;;
 false_13:
 ;;--KW_ELSE--;;
-    jmp false_24
+    jmp false_25
 false_14:
 ;;--PUSH_INT 1--;;
     mov rax, 1
@@ -116,8 +116,8 @@ false_14:
 ;;--KW_ELSE--;;
     jmp false_24
 false_21:
-;;--PUSH_INT 2--;;
-    mov rax, 2
+;;--PUSH_INT 4--;;
+    mov rax, 4
     push rax
 ;;--PRINT_INT--;;
     pop rdi
@@ -180,7 +180,7 @@ false_36:
 ;;--KW_END--;;
 false_39:
 ;;--KW_ELSE--;;
-    jmp false_50
+    jmp false_51
 false_40:
 ;;--PUSH_INT 1--;;
     mov rax, 1
@@ -209,8 +209,8 @@ false_40:
 ;;--KW_ELSE--;;
     jmp false_50
 false_47:
-;;--PUSH_INT 2--;;
-    mov rax, 2
+;;--PUSH_INT 4--;;
+    mov rax, 4
     push rax
 ;;--PRINT_INT--;;
     pop rdi
@@ -273,7 +273,7 @@ false_62:
 ;;--KW_END--;;
 false_65:
 ;;--KW_ELSE--;;
-    jmp false_76
+    jmp false_77
 false_66:
 ;;--PUSH_INT 1--;;
     mov rax, 1
@@ -302,8 +302,8 @@ false_66:
 ;;--KW_ELSE--;;
     jmp false_76
 false_73:
-;;--PUSH_INT 2--;;
-    mov rax, 2
+;;--PUSH_INT 4--;;
+    mov rax, 4
     push rax
 ;;--PRINT_INT--;;
     pop rdi
@@ -366,7 +366,7 @@ false_88:
 ;;--KW_END--;;
 false_91:
 ;;--KW_ELSE--;;
-    jmp false_102
+    jmp false_103
 false_92:
 ;;--PUSH_INT 1--;;
     mov rax, 1
@@ -395,8 +395,8 @@ false_92:
 ;;--KW_ELSE--;;
     jmp false_102
 false_99:
-;;--PUSH_INT 2--;;
-    mov rax, 2
+;;--PUSH_INT 4--;;
+    mov rax, 4
     push rax
 ;;--PRINT_INT--;;
     pop rdi
@@ -405,6 +405,282 @@ false_99:
 false_102:
 ;;--KW_END--;;
 false_103:
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--OP_EQUAL--;;
+    mov rcx, 0
+    mov rdx, 1
+    pop rax
+    pop rbx
+    cmp rax, rbx
+    cmove rcx, rdx
+    push rcx
+;;--KW_IF--;;
+    pop rax
+    cmp rax, 0
+    je false_110
+;;--PUSH_INT 2--;;
+    mov rax, 2
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_ELSE--;;
+    jmp false_121
+false_110:
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--OP_EQUAL--;;
+    mov rcx, 0
+    mov rdx, 1
+    pop rax
+    pop rbx
+    cmp rax, rbx
+    cmove rcx, rdx
+    push rcx
+;;--KW_IF--;;
+    pop rax
+    cmp rax, 0
+    je false_117
+;;--PUSH_INT 3--;;
+    mov rax, 3
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_ELSE--;;
+    jmp false_120
+false_117:
+;;--PUSH_INT 4--;;
+    mov rax, 4
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_END--;;
+false_120:
+;;--KW_END--;;
+false_121:
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--OP_EQUAL--;;
+    mov rcx, 0
+    mov rdx, 1
+    pop rax
+    pop rbx
+    cmp rax, rbx
+    cmove rcx, rdx
+    push rcx
+;;--KW_IF--;;
+    pop rax
+    cmp rax, 0
+    je false_133
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--PUSH_INT 0--;;
+    mov rax, 0
+    push rax
+;;--OP_EQUAL--;;
+    mov rcx, 0
+    mov rdx, 1
+    pop rax
+    pop rbx
+    cmp rax, rbx
+    cmove rcx, rdx
+    push rcx
+;;--KW_IF--;;
+    pop rax
+    cmp rax, 0
+    je false_132
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_END--;;
+false_132:
+;;--KW_ELSE--;;
+    jmp false_144
+false_133:
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--OP_EQUAL--;;
+    mov rcx, 0
+    mov rdx, 1
+    pop rax
+    pop rbx
+    cmp rax, rbx
+    cmove rcx, rdx
+    push rcx
+;;--KW_IF--;;
+    pop rax
+    cmp rax, 0
+    je false_140
+;;--PUSH_INT 3--;;
+    mov rax, 3
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_ELSE--;;
+    jmp false_143
+false_140:
+;;--PUSH_INT 4--;;
+    mov rax, 4
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_END--;;
+false_143:
+;;--KW_END--;;
+false_144:
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--PUSH_INT 0--;;
+    mov rax, 0
+    push rax
+;;--OP_EQUAL--;;
+    mov rcx, 0
+    mov rdx, 1
+    pop rax
+    pop rbx
+    cmp rax, rbx
+    cmove rcx, rdx
+    push rcx
+;;--KW_IF--;;
+    pop rax
+    cmp rax, 0
+    je false_159
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--OP_EQUAL--;;
+    mov rcx, 0
+    mov rdx, 1
+    pop rax
+    pop rbx
+    cmp rax, rbx
+    cmove rcx, rdx
+    push rcx
+;;--KW_IF--;;
+    pop rax
+    cmp rax, 0
+    je false_155
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_ELSE--;;
+    jmp false_158
+false_155:
+;;--PUSH_INT 2--;;
+    mov rax, 2
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_END--;;
+false_158:
+;;--KW_ELSE--;;
+    jmp false_162
+false_159:
+;;--PUSH_INT 4--;;
+    mov rax, 4
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_END--;;
+false_162:
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--PUSH_INT 0--;;
+    mov rax, 0
+    push rax
+;;--OP_EQUAL--;;
+    mov rcx, 0
+    mov rdx, 1
+    pop rax
+    pop rbx
+    cmp rax, rbx
+    cmove rcx, rdx
+    push rcx
+;;--KW_IF--;;
+    pop rax
+    cmp rax, 0
+    je false_177
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--OP_EQUAL--;;
+    mov rcx, 0
+    mov rdx, 1
+    pop rax
+    pop rbx
+    cmp rax, rbx
+    cmove rcx, rdx
+    push rcx
+;;--KW_IF--;;
+    pop rax
+    cmp rax, 0
+    je false_173
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_ELSE--;;
+    jmp false_176
+false_173:
+;;--PUSH_INT 2--;;
+    mov rax, 2
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_END--;;
+false_176:
+;;--KW_ELSE--;;
+    jmp false_180
+false_177:
+;;--PUSH_INT 4--;;
+    mov rax, 4
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_END--;;
+false_180:
     mov rax, 60
     mov rdi, 0
     syscall

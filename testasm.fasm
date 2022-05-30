@@ -34,10 +34,10 @@ dump:
     ret
 entry main
 main:
-    push 1
+    push 100
     push 1
     pop rdi
     pop rax
-    xor rax, rdi
+    cmp rax, rdi
     push rax
 segment readable writable
