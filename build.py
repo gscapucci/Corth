@@ -11,8 +11,8 @@ def run_echoed_cmd(args):
         exit(1)
 
 def main():
-    run_echoed_cmd('gcc corth.c main.c -o corth -lm')
-    run_echoed_cmd('gcc -g corth.c main.c -lm')
+    run_echoed_cmd('gcc mem.c corth.c main.c -o corth -lm')
+    run_echoed_cmd('gcc -g mem.c corth.c main.c -lm')
 
 if __name__ == "__main__":
     main()

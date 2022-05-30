@@ -12,6 +12,11 @@ int main(int argc, char **argv)
     if(argc == 2)
     {
         compile(argv[argc - 1]);
+        #if DEBUG
+            printf("[DEBUG] Debug info:\n");
+            print_mem();
+            printf("[DEBUG] End debug info.\n");
+        #endif
         return 0;
     }
     ERROR("error");

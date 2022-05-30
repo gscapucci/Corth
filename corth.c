@@ -165,17 +165,17 @@ void word_vec_push(WordVec *word_vec, Word* word)
     {
         if(word_vec->words[word_vec->size]->size > 0)
         {
-            free(word_vec->words[word_vec->size]->value);
+            my_free(word_vec->words[word_vec->size]->value);
         }
-        free(word_vec->words[word_vec->size]);
+        my_free(word_vec->words[word_vec->size]);
         word_vec->words[word_vec->size] = NULL;
     }
-    word_vec->words[word_vec->size] = malloc(sizeof(Word));
+    word_vec->words[word_vec->size] = my_malloc(sizeof(Word));
     word_vec->words[word_vec->size]->type = word->type;
     word_vec->words[word_vec->size]->size = word->size;
     if(word->size > 0)
     {
-        word_vec->words[word_vec->size]->value = malloc(word->size);
+        word_vec->words[word_vec->size]->value = my_malloc(word->size);
         memcpy(word_vec->words[word_vec->size]->value, word->value, word->size);
     }
     switch (word->type)
@@ -207,8 +207,8 @@ void word_vec_clear(WordVec *word_vec)
 {
     for (uint64_t i = 0; i < word_vec->size; i++)
     {
-        free(word_vec->words[i]->value);
-        free(word_vec->words[i]);
+        my_free(word_vec->words[i]->value);
+        my_free(word_vec->words[i]);
     }
     word_vec->size = 0;
 }
@@ -309,7 +309,7 @@ Word get_word(char *str)
         word.type = WT_DATA_TYPE;
         word.data_type = DT_INT;
         word.size = sizeof(uint64_t);
-        word.value = malloc(word.size);
+        word.value = my_malloc(word.size);
         memcpy(word.value, &(uint64_t){strtoull(str, NULL, 10)}, word.size);
         return word;
     }
@@ -318,7 +318,7 @@ Word get_word(char *str)
         word.type = WT_DATA_TYPE;
         word.data_type = DT_FLOAT;
         word.size = sizeof(long double);
-        word.value = malloc(word.size);
+        word.value = my_malloc(word.size);
         memcpy(word.value, &(long double){strtold(str, NULL)}, word.size);
         return word;
     }
@@ -327,7 +327,7 @@ Word get_word(char *str)
         word.type = WT_DATA_TYPE;
         word.data_type = DT_CHAR;
         word.size = sizeof(char);
-        word.value = (char *)malloc(word.size);
+        word.value = (char *)my_malloc(word.size);
         memcpy(word.value, &str[1], word.size);
         return word;
     }
@@ -336,7 +336,7 @@ Word get_word(char *str)
         word.type = WT_DATA_TYPE;
         word.data_type = DT_STRING;
         word.size = strlen(str) + 1;
-        word.value = (char *)malloc(word.size);
+        word.value = (char *)my_malloc(word.size);
         memcpy(word.value, str, word.size);
         return word;
     }
@@ -346,7 +346,7 @@ Word get_word(char *str)
 void create_if_block(WordVec *parsed_file, uint64_t *i)
 {
     uint64_t if_index = *i;
-    parsed_file->words[if_index]->value = malloc(sizeof(uint64_t));
+    parsed_file->words[if_index]->value = my_malloc(sizeof(uint64_t));
     while (true)
     {
         (*i)++;
@@ -364,7 +364,7 @@ void create_if_block(WordVec *parsed_file, uint64_t *i)
             if(parsed_file->words[*i]->key_word == KW_ELSE)
             {
                 uint64_t else_index = *i;
-                parsed_file->words[else_index]->value = malloc(sizeof(uint64_t));
+                parsed_file->words[else_index]->value = my_malloc(sizeof(uint64_t));
                 while (true)
                 {
                     (*i)++;
@@ -789,7 +789,7 @@ void write_fasm_file(FILE *fasm_file, WordVec *parsed_file)
 void compile(char *path)
 {
     WordVec parsed_file = {0};
-    char *out_file = (char *)malloc(strlen(path) * sizeof(char));
+    char *out_file = (char *)my_malloc(strlen(path) * sizeof(char));
 
     memcpy(out_file, path, strlen(path) - 5);
     memcpy(out_file + strlen(path) - 5, "fasm", 5);
@@ -847,6 +847,9 @@ void compile(char *path)
     fprintf(fasm_file, "    ret\n");
     fprintf(fasm_file, "segment readable writable\n");
 
+    word_vec_clear(&parsed_file);
+    my_free(out_file);
+    
     fclose(fasm_file);
     fclose(corth_file);
 }

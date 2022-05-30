@@ -1,6 +1,7 @@
 #ifndef CORTH_H
 #define CORTH_H
 
+#include "mem.h"
 #include "macros.h"
 #include "syscall.h"
 
