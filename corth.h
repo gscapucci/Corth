@@ -19,13 +19,10 @@ typedef enum Op Op;
 typedef enum WordType WordType;
 typedef enum KeyWord KeyWord;
 
-typedef struct Stack Stack;
 typedef struct Word Word;
 typedef struct Macro Macro;
 typedef struct MacroVec MacroVec;
 typedef struct DataTypeStack DataTypeStack;
-typedef struct WordVec WordVec;
-typedef struct String String;
 typedef struct WordVec WordVec;
 
 //tipos de dados aceitos
@@ -73,6 +70,9 @@ enum KeyWord {
     KW_OVER,
     KW_ROT,
     
+    KW_WHILE,
+    KW_DO,
+
     KW_MACRO,
     KW_END,
 
@@ -90,13 +90,6 @@ enum KeyWord {
     KW_FALSE,
 
     KW_COUNT
-};
-
-//a pilha da linguagem
-struct Stack
-{
-    Word *item[MAX_STACK_CAP];
-    uint64_t size;
 };
 
 struct DataTypeStack
@@ -127,26 +120,6 @@ struct Word
 };
 
 void compile(char *path);
-//operaçoes da pilha
-void stack_push(Stack *stack, Word *word);
-Word stack_pop(Stack *stack);
-
-struct Macro
-{
-    char *name;
-    Stack macro_stack;
-};
-struct MacroVec
-{
-    Macro *macros[MAX_MACRO_NAMES];
-    uint64_t size;
-};
-
-void create_macro(FILE *file);
-void macro_vec_push(Word *word);
-Word macro_vec_get_at(uint64_t index, uint64_t pos);
-void clear_macro_vec();
-
 
 struct WordVec
 {
@@ -159,6 +132,23 @@ char *word_vec_pop(WordVec *word_vec);
 void word_vec_clear(WordVec *word_vec);
 void word_vec_remove_at(WordVec *word_vec, uint64_t pos);
 uint64_t word_vec_get_by_id(WordVec *word_vec, uint64_t id);
+
+struct Macro
+{
+    char *name;
+    Word *words;
+    uint64_t size;
+};
+struct MacroVec
+{
+    Macro *macros[MAX_MACRO_NAMES];
+    uint64_t size;
+};
+
+void create_macro(FILE *file, uint64_t *id);
+void macro_vec_push(Macro* macro, Word *word);
+Word macro_vec_get_at(Macro* macro, uint64_t index, uint64_t pos);
+void clear_macro_vec(MacroVec *macroVec);
 
 void read_corth_file(FILE *fasm_file, WordVec *word_vec);
 
@@ -181,6 +171,9 @@ static const char const *key_word[] = {
     "swap",
     "over",
     "rot",
+
+    "while",
+    "do",
 
     "macro",
     "end",
@@ -213,12 +206,16 @@ static const char const *ops[] = {
     "!",
     "?"
 };
+
+static MacroVec macro_vec = {0};
+
 int32_t parse_file(WordVec *word_vec, FILE *file);
-void write_fasm_file(FILE *fasm_file, WordVec *parsed_file);
+void write_fasm_file(FILE *fasm_file, Word *word, DataTypeStack *data_type_stack, uint64_t *stack_size, uint64_t index);
 Word get_word(char *str);
 bool is_number(char *str);
 bool is_float(char *str);
 void create_if_block(WordVec *parsed_file, uint64_t *i);
+void create_while_block(WordVec *parsed_file, uint64_t *i);
 void create_blocks(WordVec *parsed_file);
 void write_syscall(FILE *fasm_file, DataTypeStack *data_type_stack, Syscall *syscall);
 void print_parsed_file(WordVec *word_vec);

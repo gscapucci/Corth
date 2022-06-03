@@ -40,9 +40,9 @@ main:
     mov rax, 111
     push rax
 ;;--OP_ADD--;;
-    pop rdi
+    pop rbx
     pop rax
-    add rax, rdi
+    add rax, rbx
     push rax
 ;;--PRINT_INT--;;
     pop rdi

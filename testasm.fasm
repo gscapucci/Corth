@@ -34,10 +34,18 @@ dump:
     ret
 entry main
 main:
-    push 100
-    push 1
-    pop rdi
+    push 65
     pop rax
-    cmp rax, rdi
-    push rax
+    mov QWORD [rsp], rax
+    lea rsi, [rsp]
+    mov edi, 1
+    mov edx, 1
+    mov rax, 1
+    syscall
+    mov BYTE [rsp], 10
+    syscall
+    mov rax, 60
+    mov rdi, 0
+    syscall
+    ret
 segment readable writable

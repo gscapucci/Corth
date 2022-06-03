@@ -54,18 +54,18 @@ main:
     push rax
 ;;--PRINT_CHAR--;;
     pop rax
+    mov BYTE [rsp+15], al
     lea rsi, [rsp+15]
-    mov QWORD [rsp+15], rax
-    mov edi, 1
-    mov edx, 1
+    mov rdi, 1
+    mov rdx, 1
     mov rax, 1
     syscall
 ;;--PRINT_CHAR--;;
     pop rax
+    mov BYTE [rsp+15], al
     lea rsi, [rsp+15]
-    mov QWORD [rsp+15], rax
-    mov edi, 1
-    mov edx, 1
+    mov rdi, 1
+    mov rdx, 1
     mov rax, 1
     syscall
     mov rax, 60

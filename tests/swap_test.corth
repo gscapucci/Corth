@@ -1,2 +1,2 @@
-1 2 over . . .
-1 2 3 4 over over over over . . . . . . . .
+1 2 swap . .
+1 2 3 4 swap swap . . swap . .

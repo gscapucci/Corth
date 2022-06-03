@@ -1,17 +1,8 @@
-0 0 = .
-0 0 < .
-0 0 > .
-0 0 <= .
-0 0 >= .
+macro inc_char cast(int) 1 + cast(char) end
+macro doit swap dup . '\n' . inc_char swap 1 + end
 
-1 0 = .
-1 0 < .
-1 0 > .
-1 0 <= .
-1 0 >= .
+macro print_alfa 'A' 0 while dup 26 < do
+    doit
+end drop drop end
 
-0 1 = .
-0 1 < .
-0 1 > .
-0 1 <= .
-0 1 >= .
+print_alfa

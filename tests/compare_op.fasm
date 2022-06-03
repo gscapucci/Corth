@@ -63,7 +63,8 @@ main:
     pop rbx
     cmp rbx, rax
     cmovl rcx, rdx
-    push rcx;;--PRINT_BOOL--;;
+    push rcx
+;;--PRINT_BOOL--;;
     pop rdi
     call dump
 ;;--PUSH_INT 0--;;
@@ -96,7 +97,8 @@ main:
     pop rbx
     cmp rbx, rax
     cmovle rcx, rdx
-    push rcx;;--PRINT_BOOL--;;
+    push rcx
+;;--PRINT_BOOL--;;
     pop rdi
     call dump
 ;;--PUSH_INT 0--;;
@@ -146,7 +148,8 @@ main:
     pop rbx
     cmp rbx, rax
     cmovl rcx, rdx
-    push rcx;;--PRINT_BOOL--;;
+    push rcx
+;;--PRINT_BOOL--;;
     pop rdi
     call dump
 ;;--PUSH_INT 1--;;
@@ -179,7 +182,8 @@ main:
     pop rbx
     cmp rbx, rax
     cmovle rcx, rdx
-    push rcx;;--PRINT_BOOL--;;
+    push rcx
+;;--PRINT_BOOL--;;
     pop rdi
     call dump
 ;;--PUSH_INT 1--;;
@@ -229,7 +233,8 @@ main:
     pop rbx
     cmp rbx, rax
     cmovl rcx, rdx
-    push rcx;;--PRINT_BOOL--;;
+    push rcx
+;;--PRINT_BOOL--;;
     pop rdi
     call dump
 ;;--PUSH_INT 0--;;
@@ -262,7 +267,8 @@ main:
     pop rbx
     cmp rbx, rax
     cmovle rcx, rdx
-    push rcx;;--PRINT_BOOL--;;
+    push rcx
+;;--PRINT_BOOL--;;
     pop rdi
     call dump
 ;;--PUSH_INT 0--;;
