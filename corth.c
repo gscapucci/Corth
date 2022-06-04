@@ -688,6 +688,9 @@ void create_if_block(WordVec *parsed_file, uint64_t *i)
 void create_while_block(WordVec *parsed_file, uint64_t *i)
 {
     uint64_t while_index = *i;
+    parsed_file->words[while_index]->size = sizeof(uint64_t);
+    parsed_file->words[while_index]->value = malloc(sizeof(uint64_t));
+    memcpy(parsed_file->words[while_index]->value, &while_index, sizeof(uint64_t));
     while(true)
     {
         (*i)++;
@@ -718,7 +721,7 @@ void create_while_block(WordVec *parsed_file, uint64_t *i)
                             parsed_file->words[end_index]->size = 2 * sizeof(uint64_t);
                             parsed_file->words[end_index]->value = my_malloc(parsed_file->words[end_index]->size);
                             memcpy(parsed_file->words[end_index]->value, &while_index, sizeof(uint64_t));
-                            memcpy(parsed_file->words[end_index]->value + sizeof(uint64_t), &i, sizeof(uint64_t));
+                            memcpy(parsed_file->words[end_index]->value + sizeof(uint64_t), i, sizeof(uint64_t));
                             (*i)++;
                             return;    
                         }

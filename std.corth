@@ -1,12 +1,4 @@
-macro inc_char cast(int) 1 + cast(char) end
-macro do-all swap dup . '\n' . inc_char swap 1 + end
-
-macro print_alfa 
-    'A' 0 
-    while dup 26 < do
-        do-all
-    end
-    drop drop
-end
-
-print_alfa
+'A' cast(int) while dup 'Z' cast(int) 1 + < do
+    cast(char) dup .
+    cast(int) 1 +
+end drop
