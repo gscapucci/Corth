@@ -55,8 +55,8 @@ main:
     push 97
 ;;--PRINT_CHAR--;;
     pop rax
-    mov BYTE [rsp+15], al
-    lea rsi, [rsp+15]
+    mov BYTE [rsp+31], al
+    lea rsi, [rsp+31]
     mov rdi, 1
     mov rdx, 1
     mov rax, 1
@@ -67,16 +67,16 @@ main:
     push 98
 ;;--PRINT_CHAR--;;
     pop rax
-    mov BYTE [rsp+15], al
-    lea rsi, [rsp+15]
+    mov BYTE [rsp+31], al
+    lea rsi, [rsp+31]
     mov rdi, 1
     mov rdx, 1
     mov rax, 1
     syscall
 ;;--PRINT_CHAR--;;
     pop rax
-    mov BYTE [rsp+15], al
-    lea rsi, [rsp+15]
+    mov BYTE [rsp+31], al
+    lea rsi, [rsp+31]
     mov rdi, 1
     mov rdx, 1
     mov rax, 1
@@ -88,8 +88,8 @@ main:
     push 97
 ;;--PRINT_CHAR--;;
     pop rax
-    mov BYTE [rsp+15], al
-    lea rsi, [rsp+15]
+    mov BYTE [rsp+31], al
+    lea rsi, [rsp+31]
     mov rdi, 1
     mov rdx, 1
     mov rax, 1

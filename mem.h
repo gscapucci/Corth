@@ -7,7 +7,7 @@
 
 #include "macros.h"
 
-#define DEBUG 1
+#define DEBUG 0
 
 static size_t allocated = 0;
 static size_t malloc_used = 0;

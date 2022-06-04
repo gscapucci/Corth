@@ -25,7 +25,9 @@ def rec():
         for file in files:
             if file[len(file) - 5:] == 'corth':
                 file = './tests/' + file
-                if subprocess.run(['./corth', file]).returncode != 0:
+                returnCode = subprocess.run(['./corth', file]).returncode
+                if returnCode != 0:
+                    print('./corth ' + file + ' ERROR ' + str(returnCode) + "\n\n")
                     os.system('echo ' + '\'ERROR\' ' + '> ' + file.removesuffix('corth') + 'fasm.txt')
                     continue
                 file = file.removesuffix('corth')

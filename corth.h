@@ -214,9 +214,11 @@ void write_fasm_file(FILE *fasm_file, Word *word, DataTypeStack *data_type_stack
 Word get_word(char *str);
 bool is_number(char *str);
 bool is_float(char *str);
+void create_macro_if_block(Macro *macro, uint64_t *i, uint64_t macro_vec_index, uint64_t parsed_file_size);
+void create_macro_while_block(Macro *macro, uint64_t *i, uint64_t macro_vec_index, uint64_t parsed_file_size);
 void create_if_block(WordVec *parsed_file, uint64_t *i);
 void create_while_block(WordVec *parsed_file, uint64_t *i);
-void create_blocks(WordVec *parsed_file);
+void create_blocks(WordVec *parsed_file, uint64_t *i);
 void write_syscall(FILE *fasm_file, DataTypeStack *data_type_stack, Syscall *syscall);
 void print_parsed_file(WordVec *word_vec);
 #endif /* CORTH_H */

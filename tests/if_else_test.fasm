@@ -262,4 +262,448 @@ addr_51:
     cmp rax, 0
     je addr_62
 ;;--PUSH_INT 1--;;
-    mov ra
+    mov rax, 1
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_ELSE--;;
+    jmp addr_65
+addr_62:
+;;--PUSH_INT 2--;;
+    mov rax, 2
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_END--;;
+    jmp addr_65
+addr_65:
+;;--KW_ELSE--;;
+    jmp addr_77
+addr_66:
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--OP_EQUAL--;;
+    mov rcx, 0
+    mov rdx, 1
+    pop rax
+    pop rbx
+    cmp rax, rbx
+    cmove rcx, rdx
+    push rcx
+;;--KW_IF--;;
+    pop rax
+    cmp rax, 0
+    je addr_73
+;;--PUSH_INT 3--;;
+    mov rax, 3
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_ELSE--;;
+    jmp addr_76
+addr_73:
+;;--PUSH_INT 4--;;
+    mov rax, 4
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_END--;;
+    jmp addr_76
+addr_76:
+;;--KW_END--;;
+    jmp addr_77
+addr_77:
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--PUSH_INT 0--;;
+    mov rax, 0
+    push rax
+;;--OP_EQUAL--;;
+    mov rcx, 0
+    mov rdx, 1
+    pop rax
+    pop rbx
+    cmp rax, rbx
+    cmove rcx, rdx
+    push rcx
+;;--KW_IF--;;
+    pop rax
+    cmp rax, 0
+    je addr_92
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--OP_EQUAL--;;
+    mov rcx, 0
+    mov rdx, 1
+    pop rax
+    pop rbx
+    cmp rax, rbx
+    cmove rcx, rdx
+    push rcx
+;;--KW_IF--;;
+    pop rax
+    cmp rax, 0
+    je addr_88
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_ELSE--;;
+    jmp addr_91
+addr_88:
+;;--PUSH_INT 2--;;
+    mov rax, 2
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_END--;;
+    jmp addr_91
+addr_91:
+;;--KW_ELSE--;;
+    jmp addr_103
+addr_92:
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--PUSH_INT 0--;;
+    mov rax, 0
+    push rax
+;;--OP_EQUAL--;;
+    mov rcx, 0
+    mov rdx, 1
+    pop rax
+    pop rbx
+    cmp rax, rbx
+    cmove rcx, rdx
+    push rcx
+;;--KW_IF--;;
+    pop rax
+    cmp rax, 0
+    je addr_99
+;;--PUSH_INT 3--;;
+    mov rax, 3
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_ELSE--;;
+    jmp addr_102
+addr_99:
+;;--PUSH_INT 4--;;
+    mov rax, 4
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_END--;;
+    jmp addr_102
+addr_102:
+;;--KW_END--;;
+    jmp addr_103
+addr_103:
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--OP_EQUAL--;;
+    mov rcx, 0
+    mov rdx, 1
+    pop rax
+    pop rbx
+    cmp rax, rbx
+    cmove rcx, rdx
+    push rcx
+;;--KW_IF--;;
+    pop rax
+    cmp rax, 0
+    je addr_110
+;;--PUSH_INT 2--;;
+    mov rax, 2
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_ELSE--;;
+    jmp addr_121
+addr_110:
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--OP_EQUAL--;;
+    mov rcx, 0
+    mov rdx, 1
+    pop rax
+    pop rbx
+    cmp rax, rbx
+    cmove rcx, rdx
+    push rcx
+;;--KW_IF--;;
+    pop rax
+    cmp rax, 0
+    je addr_117
+;;--PUSH_INT 3--;;
+    mov rax, 3
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_ELSE--;;
+    jmp addr_120
+addr_117:
+;;--PUSH_INT 4--;;
+    mov rax, 4
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_END--;;
+    jmp addr_120
+addr_120:
+;;--KW_END--;;
+    jmp addr_121
+addr_121:
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--OP_EQUAL--;;
+    mov rcx, 0
+    mov rdx, 1
+    pop rax
+    pop rbx
+    cmp rax, rbx
+    cmove rcx, rdx
+    push rcx
+;;--KW_IF--;;
+    pop rax
+    cmp rax, 0
+    je addr_133
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--PUSH_INT 0--;;
+    mov rax, 0
+    push rax
+;;--OP_EQUAL--;;
+    mov rcx, 0
+    mov rdx, 1
+    pop rax
+    pop rbx
+    cmp rax, rbx
+    cmove rcx, rdx
+    push rcx
+;;--KW_IF--;;
+    pop rax
+    cmp rax, 0
+    je addr_132
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_END--;;
+    jmp addr_132
+addr_132:
+;;--KW_ELSE--;;
+    jmp addr_144
+addr_133:
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--OP_EQUAL--;;
+    mov rcx, 0
+    mov rdx, 1
+    pop rax
+    pop rbx
+    cmp rax, rbx
+    cmove rcx, rdx
+    push rcx
+;;--KW_IF--;;
+    pop rax
+    cmp rax, 0
+    je addr_140
+;;--PUSH_INT 3--;;
+    mov rax, 3
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_ELSE--;;
+    jmp addr_143
+addr_140:
+;;--PUSH_INT 4--;;
+    mov rax, 4
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_END--;;
+    jmp addr_143
+addr_143:
+;;--KW_END--;;
+    jmp addr_144
+addr_144:
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--PUSH_INT 0--;;
+    mov rax, 0
+    push rax
+;;--OP_EQUAL--;;
+    mov rcx, 0
+    mov rdx, 1
+    pop rax
+    pop rbx
+    cmp rax, rbx
+    cmove rcx, rdx
+    push rcx
+;;--KW_IF--;;
+    pop rax
+    cmp rax, 0
+    je addr_159
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--OP_EQUAL--;;
+    mov rcx, 0
+    mov rdx, 1
+    pop rax
+    pop rbx
+    cmp rax, rbx
+    cmove rcx, rdx
+    push rcx
+;;--KW_IF--;;
+    pop rax
+    cmp rax, 0
+    je addr_155
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_ELSE--;;
+    jmp addr_158
+addr_155:
+;;--PUSH_INT 2--;;
+    mov rax, 2
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_END--;;
+    jmp addr_158
+addr_158:
+;;--KW_ELSE--;;
+    jmp addr_162
+addr_159:
+;;--PUSH_INT 4--;;
+    mov rax, 4
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_END--;;
+    jmp addr_162
+addr_162:
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--PUSH_INT 0--;;
+    mov rax, 0
+    push rax
+;;--OP_EQUAL--;;
+    mov rcx, 0
+    mov rdx, 1
+    pop rax
+    pop rbx
+    cmp rax, rbx
+    cmove rcx, rdx
+    push rcx
+;;--KW_IF--;;
+    pop rax
+    cmp rax, 0
+    je addr_177
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--OP_EQUAL--;;
+    mov rcx, 0
+    mov rdx, 1
+    pop rax
+    pop rbx
+    cmp rax, rbx
+    cmove rcx, rdx
+    push rcx
+;;--KW_IF--;;
+    pop rax
+    cmp rax, 0
+    je addr_173
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_ELSE--;;
+    jmp addr_176
+addr_173:
+;;--PUSH_INT 2--;;
+    mov rax, 2
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_END--;;
+    jmp addr_176
+addr_176:
+;;--KW_ELSE--;;
+    jmp addr_180
+addr_177:
+;;--PUSH_INT 4--;;
+    mov rax, 4
+    push rax
+;;--PRINT_INT--;;
+    pop rdi
+    call dump
+;;--KW_END--;;
+    jmp addr_180
+addr_180:
+    mov rax, 60
+    mov rdi, 0
+    syscall
+    ret
+segment readable writable
