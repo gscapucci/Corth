@@ -32,9 +32,9 @@ end drop
 ## Quick Start
 
 ### Requirements
-    -linux(or wsl)
-    -gcc compiler
-    -[fasm](https://flatassembler.net/)
+-linux(or wsl)
+-gcc compiler
+-[fasm](https://flatassembler.net/)
 
 Build:
 ```console
