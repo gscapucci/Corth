@@ -1,4 +1,14 @@
-'A' cast(int) while dup 'Z' cast(int) 1 + < do
-    cast(char) dup .
-    cast(int) 1 +
-end drop
+macro incptr8 cast(int) 1 + cast(ptr) end
+macro incptr16 cast(int) 2 + cast(ptr) end 
+macro incptr32 cast(int) 4 + cast(ptr) end 
+macro incptr64 cast(int) 8 + cast(ptr) end 
+
+macro subptr8 cast(int) 1 - cast(ptr) end
+macro subptr16 cast(int) 2 - cast(ptr) end
+macro subptr32 cast(int) 4 - cast(ptr) end
+macro subptr64 cast(int) 8 - cast(ptr) end
+
+macro putc cast(char) . end
+macro putd cast(int) . end
+macro putptr cast(ptr) . end
+macro putf cast(float) . end

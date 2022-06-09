@@ -3,13 +3,13 @@
 
 #include "mem.h"
 #include "macros.h"
-#include "syscall.h"
 
 #include <string.h>
 #include <stdbool.h>
 #include <math.h>
 
-//máximo de dados que podem ser empilhados
+#define DEBUG 0
+#define MEM_CAP 1024*1024
 #define MAX_STACK_CAP 1024*200
 #define MAX_MACRO_NAMES 1024*100
 #define MAX_NUMBER_OF_STRINGS 1024*200
@@ -24,17 +24,18 @@ typedef struct Macro Macro;
 typedef struct MacroVec MacroVec;
 typedef struct DataTypeStack DataTypeStack;
 typedef struct WordVec WordVec;
+typedef struct String String;
+typedef struct StringVec StringVec;
 
-//tipos de dados aceitos
 enum DataType {
     DT_INT,
     DT_CHAR,
     DT_STRING,
     DT_BOOL,
-    DT_FLOAT
+    DT_FLOAT,
+    DT_PTR
 };
 
-//operadores aceitos
 enum Op {
     OP_ADD,
     OP_SUB,
@@ -51,18 +52,15 @@ enum Op {
     OP_COUNT
 };
 
-//tipos de palavras
 enum WordType {
     WT_DATA_TYPE,
     WT_OP,
     WT_KEY_WORD,
     WT_MACRO,
-    WT_SYSCALL,
     WT_NONE = ' ',
     WT_COMMENT = '#'
 };
 
-//keywords da linguagem corth, é usado como índice do array com as keywords
 enum KeyWord {
     KW_DROP,
     KW_DUP,
@@ -83,12 +81,23 @@ enum KeyWord {
     KW_CAST_INT,
     KW_CAST_BOOL,
     KW_CAST_FLOAT,
-
-    KW_SYSCALL,
-
+    KW_CAST_PTR,
     KW_TRUE,
     KW_FALSE,
 
+    KW_SHR,
+    KW_SHL,
+    KW_MEM,
+    
+    KW_READ8,
+    KW_READ16,
+    KW_READ32,
+    KW_READ64,
+    
+    KW_WRITE8,
+    KW_WRITE16,
+    KW_WRITE32,
+    KW_WRITE64,
     KW_COUNT
 };
 
@@ -115,7 +124,6 @@ struct Word
         Op op;
         DataType data_type;
         KeyWord key_word;
-        Syscall sys_call;
     };
 };
 
@@ -147,8 +155,22 @@ struct MacroVec
 
 void create_macro(FILE *file, uint64_t *id);
 void macro_vec_push(Macro* macro, Word *word);
-Word macro_vec_get_at(Macro* macro, uint64_t index, uint64_t pos);
 void clear_macro_vec(MacroVec *macroVec);
+
+struct String
+{
+    char *str;
+    uint64_t size;
+};
+
+struct StringVec
+{
+    String *strings[MAX_NUMBER_OF_STRINGS];
+    uint64_t size;
+};
+
+void string_vec_push(StringVec *string_vec, Word *word);
+void clear_string_vec(StringVec *string_vec);
 
 void read_corth_file(FILE *fasm_file, WordVec *word_vec);
 
@@ -185,11 +207,22 @@ static const char const *key_word[] = {
     "cast(int)",
     "cast(bool)",
     "cast(float)",
-
-    "syscall",
+    "cast(ptr)",
 
     "true",
-    "false"
+    "false",
+
+    "shr",
+    "shl",
+    "mem",
+    "r8",
+    "r16",
+    "r32",
+    "r64",
+    "w8",
+    "w16",
+    "w32",
+    "w64"
 };
 
 static const char const *ops[] = {
@@ -208,7 +241,9 @@ static const char const *ops[] = {
 };
 
 static MacroVec macro_vec = {0};
+static StringVec str_vec = {0};
 
+void print_data_type_stack(DataTypeStack *data_type_stack);
 int32_t parse_file(WordVec *word_vec, FILE *file);
 void write_fasm_file(FILE *fasm_file, Word *word, DataTypeStack *data_type_stack, uint64_t *stack_size, uint64_t index);
 Word get_word(char *str);
@@ -219,6 +254,5 @@ void create_macro_while_block(Macro *macro, uint64_t *i, uint64_t macro_vec_inde
 void create_if_block(WordVec *parsed_file, uint64_t *i);
 void create_while_block(WordVec *parsed_file, uint64_t *i);
 void create_blocks(WordVec *parsed_file, uint64_t *i);
-void write_syscall(FILE *fasm_file, DataTypeStack *data_type_stack, Syscall *syscall);
 void print_parsed_file(WordVec *word_vec);
 #endif /* CORTH_H */

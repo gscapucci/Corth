@@ -101,9 +101,6 @@ void macro_vec_push(Macro* macro, Word *word)
     case WT_OP:
         macro->words[macro->size].op = word->op;
         break;
-    case WT_SYSCALL:
-        macro->words[macro->size].sys_call = word->sys_call;
-        break;
     case WT_MACRO:
     case WT_NONE:
         break;
@@ -353,13 +350,13 @@ int32_t parse_file(WordVec *word_vec, FILE *file)
                 {
                     ERROR("not expect end of file");
                 }
-                while (c != '\"' || str[str_len - 1] != '\\')
+                while (!(c == '\"' && str[str_len - 1] != '\\'))
                 {
                     if(c == EOF)
                     {
                         ERROR("not expect end of file");
                     }
-                    str[str_len] = c;
+                    str[str_len++] = c;
                     c = getc(file);
                 }
                 str[str_len++] = c;
@@ -438,9 +435,10 @@ void word_vec_push(WordVec *word_vec, Word* word)
     word_vec->words[word_vec->size]->size = word->size;
     if(word->size > 0)
     {
-        word_vec->words[word_vec->size]->size = word->size;
-        word_vec->words[word_vec->size]->value = my_malloc(word->size);
-        memcpy(word_vec->words[word_vec->size]->value, word->value, word->size);
+        word_vec->words[word_vec->size]->size = word->size - 2;
+        word_vec->words[word_vec->size]->value = my_malloc(word->size - 2);
+        memcpy(word_vec->words[word_vec->size]->value, word->value + 1, word_vec->words[word_vec->size]->size);
+        ((char *)word_vec->words[word_vec->size]->value)[word_vec->words[word_vec->size]->size - 1] = 0;
     }
     switch (word->type)
     {
@@ -452,9 +450,6 @@ void word_vec_push(WordVec *word_vec, Word* word)
         break;
     case WT_OP:
         word_vec->words[word_vec->size]->op = word->op;
-        break;
-    case WT_SYSCALL:
-        word_vec->words[word_vec->size]->sys_call = word->sys_call;
         break;
     case WT_COMMENT:
     case WT_MACRO:
@@ -555,17 +550,6 @@ Word get_word(char *str)
         {
             word.type = WT_KEY_WORD;
             word.key_word = (KeyWord)i;
-            word.size = 0;
-            word.value = NULL;
-            return word;
-        }
-    }
-    for (uint64_t i = 0; i < SYSCALL_COUNT; i++)
-    {
-        if(!strcmp(str, syscalls[i]))
-        {
-            word.type = WT_SYSCALL;
-            word.sys_call = (Syscall)i;
             word.size = 0;
             word.value = NULL;
             return word;
@@ -786,6 +770,7 @@ void create_macro_if_block(Macro *macro, uint64_t *i, uint64_t macro_vec_index, 
         }
     }
 }
+
 void create_macro_while_block(Macro *macro, uint64_t *i, uint64_t macro_vec_index, uint64_t parsed_file_size)
 {
     uint64_t while_index = *i;
@@ -841,7 +826,7 @@ void create_macro_while_block(Macro *macro, uint64_t *i, uint64_t macro_vec_inde
         }
     }
 }
-//TODO: something wrong with index
+
 void create_blocks(WordVec *parsed_file, uint64_t *i)
 {
 
@@ -889,6 +874,8 @@ void create_blocks(WordVec *parsed_file, uint64_t *i)
 
 void write_fasm_file(FILE *fasm_file, Word *word, DataTypeStack *data_type_stack, uint64_t *stack_size, uint64_t index)
 {
+    static uint16_t str_len[MAX_NUMBER_OF_STRINGS];
+    static int32_t str_index = 0;
     DataType aux[3] = {0};
     switch (word->type)
     {
@@ -914,7 +901,11 @@ void write_fasm_file(FILE *fasm_file, Word *word, DataTypeStack *data_type_stack
             fprintf(fasm_file, "    push rax\n");
             break;
         case DT_STRING:
-            UNIMPLEMENTED("DT_STRING");
+            string_vec_push(&str_vec, word);
+            str_len[str_index++] = str_vec.strings[str_vec.size - 1]->size;
+            fprintf(fasm_file, ";;--PUSH_STRING--;;\n");
+            fprintf(fasm_file, "    lea rax, [str_%zu]\n", str_vec.size - 1);
+            fprintf(fasm_file, "    push rax\n");
             break;
         default:
             ERROR("unknown DataType");
@@ -924,14 +915,6 @@ void write_fasm_file(FILE *fasm_file, Word *word, DataTypeStack *data_type_stack
     case WT_KEY_WORD:
         switch (word->key_word)
         {
-        case KW_SYSCALL:
-            aux[0] = data_type_stack_pop(data_type_stack);
-            if(aux[0] != DT_INT)
-            {
-                ERROR("expect int");
-            }
-            write_syscall(fasm_file, data_type_stack, &(Syscall){aux[0]});
-            break;
         case KW_IF:
             aux[0] = data_type_stack_pop(data_type_stack);
             *stack_size = data_type_stack->size;
@@ -1033,6 +1016,8 @@ void write_fasm_file(FILE *fasm_file, Word *word, DataTypeStack *data_type_stack
                 case DT_INT:
                 case DT_CHAR:
                 case DT_BOOL:
+                case DT_PTR:
+                    fprintf(fasm_file, ";;--KW_CAST_INT--;;\n");
                     break;
                 default:
                     ERROR("invalid cast to int");
@@ -1046,12 +1031,25 @@ void write_fasm_file(FILE *fasm_file, Word *word, DataTypeStack *data_type_stack
                 case DT_INT:
                 case DT_CHAR:
                 case DT_BOOL:
+                    fprintf(fasm_file, ";;--KW_CAST_CHAR--;;\n");
                     break;
                 default:
                     ERROR("invalid cast to char");
                     break;
             }
             data_type_stack_push(data_type_stack, &(DataType){DT_CHAR});
+            break;
+        case KW_CAST_PTR:
+            switch (data_type_stack_pop(data_type_stack))
+            {
+            case DT_INT:
+                fprintf(fasm_file, "--KW_CAST_INT--;;\n");
+                break;
+            default:
+                ERROR("invalid cast to ptr");
+                break;
+            }
+            data_type_stack_push(data_type_stack, &(DataType){DT_PTR});
             break;
         case KW_FALSE:
             fprintf(fasm_file, ";;--KW_FALSE--;;\n");
@@ -1079,15 +1077,137 @@ void write_fasm_file(FILE *fasm_file, Word *word, DataTypeStack *data_type_stack
             fprintf(fasm_file, "    cmp rax, 0\n");
             fprintf(fasm_file, "    je addr_%zu\n", *(uint64_t *)word->value);
             break;
+        case KW_MEM:
+            fprintf(fasm_file, ";;KW_MEM--;;\n");
+            fprintf(fasm_file, "    push mem\n");
+            data_type_stack_push(data_type_stack, &(DataType){DT_PTR});
+            break;
+        case KW_WRITE8:
+            aux[0] = data_type_stack_pop(data_type_stack);
+            aux[1] = data_type_stack_pop(data_type_stack);
+            if(aux[1] != DT_PTR)
+            {
+                ERROR("expect ptr");
+            }
+            fprintf(fasm_file, ";;--KW_WRITE8--;;\n");
+            fprintf(fasm_file, "    pop rbx\n");
+            fprintf(fasm_file, "    pop rax\n");
+            fprintf(fasm_file, "    mov [rax], bl\n");
+            break;
+        case KW_WRITE16:
+            UNIMPLEMENTED();
+            aux[0] = data_type_stack_pop(data_type_stack);
+            aux[1] = data_type_stack_pop(data_type_stack);
+            if(aux[1] != DT_PTR)
+            {
+                ERROR("expect ptr");
+            }
+            fprintf(fasm_file, ";;--KW_WRITE16--;;\n");
+            fprintf(fasm_file, "    pop rbx\n");
+            fprintf(fasm_file, "    pop rax\n");
+            fprintf(fasm_file, "    mov [rax], bx\n");
+            break;
+        case KW_WRITE32:
+            aux[0] = data_type_stack_pop(data_type_stack);
+            aux[1] = data_type_stack_pop(data_type_stack);
+            if(aux[1] != DT_PTR)
+            {
+                ERROR("expect ptr");
+            }
+            fprintf(fasm_file, ";;--KW_WRITE32--;;\n");
+            fprintf(fasm_file, "    pop rbx\n");
+            fprintf(fasm_file, "    pop rax\n");
+            fprintf(fasm_file, "    mov [rax], ebx\n");
+            break;
+        case KW_WRITE64:
+            aux[0] = data_type_stack_pop(data_type_stack);
+            aux[1] = data_type_stack_pop(data_type_stack);
+            if(aux[1] != DT_PTR)
+            {
+                ERROR("expect ptr");
+            }
+            fprintf(fasm_file, ";;--KW_WRITE64--;;\n");
+            fprintf(fasm_file, "    pop rbx\n");
+            fprintf(fasm_file, "    pop rax\n");
+            fprintf(fasm_file, "    mov [rax], rbx\n");
+            break;
+        case KW_READ8:
+            aux[0] = data_type_stack_pop(data_type_stack);
+            if(aux[0] != DT_PTR)
+            {
+                ERROR("expect ptr");
+            }
+            fprintf(fasm_file, ";;--KW_READ8--;;\n");
+            fprintf(fasm_file, "    pop rax\n");
+            fprintf(fasm_file, "    xor rbx, rbx\n");
+            fprintf(fasm_file, "    mov bl, [rax]\n");
+            fprintf(fasm_file, "    push rbx\n");
+            data_type_stack_push(data_type_stack, &(DataType){DT_INT});
+            break;
+        case KW_READ16:
+            aux[0] = data_type_stack_pop(data_type_stack);
+            if(aux[0] != DT_PTR)
+            {
+                ERROR("expect ptr");
+            }
+            fprintf(fasm_file, ";;--KW_READ8--;;\n");
+            fprintf(fasm_file, "    pop rax\n");
+            fprintf(fasm_file, "    xor rbx, rbx\n");
+            fprintf(fasm_file, "    mov bx, [rax]\n");
+            fprintf(fasm_file, "    push rbx\n");
+            data_type_stack_push(data_type_stack, &(DataType){DT_INT});
+            break;
+        case KW_READ32:
+            aux[0] = data_type_stack_pop(data_type_stack);
+            if(aux[0] != DT_PTR)
+            {
+                ERROR("expect ptr");
+            }
+            fprintf(fasm_file, ";;--KW_READ32--;;\n");
+            fprintf(fasm_file, "    pop rax\n");
+            fprintf(fasm_file, "    xor rbx, rbx\n");
+            fprintf(fasm_file, "    mov ebx, [rax]\n");
+            fprintf(fasm_file, "    push rbx\n");
+            data_type_stack_push(data_type_stack, &(DataType){DT_INT});
+            break;
+        case KW_READ64:
+            aux[0] = data_type_stack_pop(data_type_stack);
+            if(aux[0] != DT_PTR)
+            {
+                ERROR("expect ptr");
+            }
+            fprintf(fasm_file, ";;--KW_READ64--;;\n");
+            fprintf(fasm_file, "    pop rax\n");
+            fprintf(fasm_file, "    xor rbx, rbx\n");
+            fprintf(fasm_file, "    mov rbx, [rax]\n");
+            fprintf(fasm_file, "    push rbx\n");
+            data_type_stack_push(data_type_stack, &(DataType){DT_INT});
+            break;
+        case KW_SHR:
+            aux[0] = data_type_stack_pop(data_type_stack);
+            if(aux[0] != DT_INT && aux[0] != DT_CHAR)
+            {
+                ERROR("invalid data type");
+            }
+            fprintf(fasm_file, ";;--KW_SHR--;;\n");
+            fprintf(fasm_file, "    pop rax\n");
+            fprintf(fasm_file, "    shr rax, 1\n");
+            fprintf(fasm_file, "    push rax\n");
+            data_type_stack_push(data_type_stack, &aux[0]);
+            break;
+        case KW_SHL:
+            aux[0] = data_type_stack_pop(data_type_stack);
+            fprintf(fasm_file, ";;--KW_SHL--;;\n");
+            fprintf(fasm_file, "    pop rax\n");
+            fprintf(fasm_file, "    shl rax, 1\n");
+            fprintf(fasm_file, "    push rax\n");
+            data_type_stack_push(data_type_stack, &aux[0]);
+            break;
         default:
-            fprintf(stderr, "%d ", word->key_word);
+            fprintf(stderr, "%s ", key_word[word->key_word]);
             ERROR("unknown Key Word");
             break;
         }
-        break;
-    case WT_SYSCALL:
-        UNIMPLEMENTED("WT_SYSCALL");
-        // write_syscall(fasm_file, &data_type_stack, &word.sys_call);
         break;
     case WT_MACRO:
         for (uint64_t j = 0; j < macro_vec.size; j++)
@@ -1128,13 +1248,24 @@ void write_fasm_file(FILE *fasm_file, Word *word, DataTypeStack *data_type_stack
             case DT_FLOAT:
                 UNIMPLEMENTED("DT_FLOAT");
                 break;
+            case DT_PTR:
+                fprintf(fasm_file, ";;--PRINT_PTR--;;\n");
+                fprintf(fasm_file, "    pop rdi\n");
+                fprintf(fasm_file, "    call dump\n");
+                break;
             case DT_INT:
                 fprintf(fasm_file, ";;--PRINT_INT--;;\n");
                 fprintf(fasm_file, "    pop rdi\n");
                 fprintf(fasm_file, "    call dump\n");
                 break;
             case DT_STRING:
-                UNIMPLEMENTED("DT_STRING");
+                fprintf(fasm_file, ";;--PRINT_STR--;;\n");
+                fprintf(fasm_file, "    pop rax\n");
+                fprintf(fasm_file, "    lea rsi, [rax]\n");
+                fprintf(fasm_file, "    mov rdi, 1\n");
+                fprintf(fasm_file, "    mov rdx, %d\n", str_len[str_index - 1]);
+                fprintf(fasm_file, "    mov rax, 1\n");
+                fprintf(fasm_file, "    syscall\n");
                 break;
             default:
                 ERROR("can not print this data type");
@@ -1291,13 +1422,16 @@ void write_fasm_file(FILE *fasm_file, Word *word, DataTypeStack *data_type_stack
             fprintf(fasm_file, "    push rcx\n");
             data_type_stack_push(data_type_stack, &(DataType){DT_BOOL});
             break;
+        case OP_PRINT_STACK:
+            print_data_type_stack(data_type_stack);
+            break;
         default:
             ERROR("unknown op");
             break;
         }
         break;
     default:
-        ERROR("unknown WordType");
+        ERROR("unknown word type");
         break;
     }
 }
@@ -1373,6 +1507,16 @@ void compile(char *path)
     fprintf(fasm_file, "    ret\n");
     fprintf(fasm_file, "segment readable writable\n");
 
+    for (uint64_t i = 0; i < str_vec.size; i++)
+    {
+        fprintf(fasm_file, "str_%zu db ", i);
+        for (uint64_t j = 0; j < str_vec.strings[i]->size - 1; j++)
+        {
+            fprintf(fasm_file, "%d,", str_vec.strings[i]->str[j]);
+        }
+        fprintf(fasm_file, "0\n");
+    }
+    fprintf(fasm_file, "mem rb %d\n", MEM_CAP);
     word_vec_clear(&parsed_file);
     clear_macro_vec(&macro_vec);
 
@@ -1380,115 +1524,51 @@ void compile(char *path)
     fclose(corth_file);
 }
 
-Syscall get_syscall(char *str)
+void string_vec_push(StringVec *string_vec, Word *word)
 {
-    for (uint64_t i = 0; i < SYSCALL_COUNT; i++)
+    if(string_vec->size >= MAX_NUMBER_OF_STRINGS)
     {
-        if(strlen(str) == strlen(syscalls[i]) && strcmp(str, syscalls[i]) == 0)
-        {
-            return (Syscall)i;
-        }
+        ERROR("string overflow");
     }
-    ERROR("unknown syscall");
+    string_vec->strings[string_vec->size] = my_malloc(sizeof(String));
+    string_vec->strings[string_vec->size]->size = (strlen((char *)word->value) + 1) * sizeof(char);
+    string_vec->strings[string_vec->size]->str = malloc(string_vec->strings[string_vec->size]->size * sizeof(char));
+    memcpy(string_vec->strings[string_vec->size]->str, word->value, string_vec->strings[string_vec->size]->size);
+    string_vec->size++;   
 }
 
-void write_syscall(FILE *fasm_file, DataTypeStack *data_type_stack, Syscall *syscall)
+void print_data_type_stack(DataTypeStack *data_type_stack)
 {
-    DataType aux = {0};
-    switch (number_of_syscall_args[*syscall])
+    if(data_type_stack->size == 0) {return;}
+    printf("-----------------\n");
+    for (uint64_t i = data_type_stack->size - 1;; i--)
     {
-    case 0:
-        UNIMPLEMENTED("0 args syscall");
-        break;
-    case 1:
-        UNIMPLEMENTED("1 args syscall");
-        break;
-    case 2:
-        UNIMPLEMENTED("2 args syscall");
-        break;
-    case 3:
-        UNIMPLEMENTED("3 args syscall");
-        // data_type_stack_pop(data_type_stack);
-        // data_type_stack_pop(data_type_stack);
-        // data_type_stack_pop(data_type_stack);
-        // fprintf(fasm_file, "    pop rax\n");
-        // fprintf(fasm_file, "    pop rdx\n");
-        // fprintf(fasm_file, "    \n");
-        // fprintf(fasm_file, "\n");
-        break;
-    case 4:
-        UNIMPLEMENTED("4 args syscall");
-        break;
-    case 5:
-        UNIMPLEMENTED("5 args syscall");
-        break;
-    case 6:
-        UNIMPLEMENTED("6 args syscall");
-        break;
-    
-    default:
-        ERROR();
-        break;
-    }
-}
-
-void print_parsed_file(WordVec *word_vec)
-{
-    for (uint64_t i = 0; i < word_vec->size; i++)
-    {
-        switch (word_vec->words[i]->type)
+        switch (data_type_stack->types[i])
         {
-        case WT_COMMENT:
-            // printf("[%zu] = WT_COMMENT\n", i);
+        case DT_BOOL:
+            printf("[BOOL]\n");
             break;
-        case WT_DATA_TYPE:  
-            switch (word_vec->words[i]->data_type)
-            {
-            case DT_INT:
-                printf("[%zu] = DT_INT\n", i);
-                break;
-            case DT_CHAR:
-                printf("[%zu] = DT_CHAR\n", i);
-                break;
-            case DT_BOOL:
-                printf("[%zu] = DT_BOOL\n", i);
-                break;
-            default:
-                // ERROR("unknow data type");
-                break;
-            }
+        case DT_CHAR:
+            printf("[CHAR]\n");
             break;
-        case WT_KEY_WORD:
-            switch (word_vec->words[i]->key_word)
-            {
-            case KW_IF:
-                printf("[%zu] = KW_IF\n", i);
-                break;
-            case KW_ELSE:
-                printf("[%zu] = KW_ELSE\n", i);
-                break;
-            case KW_END:
-                printf("[%zu] = KW_END\n", i);
-                break;
-            default:
-                break;
-            }
+        case DT_FLOAT:
+            printf("[FLOAT]\n");
             break;
-        case WT_MACRO:
-            // UNIMPLEMENTED("WT_MACRO");
+        case DT_INT:
+            printf("[INT]\n");
             break;
-        case WT_NONE:
-            // UNIMPLEMENTED("WT_NONE");
+        case DT_PTR:
+            printf("[PTR]\n");
             break;
-        case WT_OP:
-            // UNIMPLEMENTED("WT_OP");
-            break;
-        case WT_SYSCALL:
-            // UNIMPLEMENTED("WT_SYSCALL");
+        case DT_STRING:
+            printf("[STRING]\n");
             break;
         default:
-            // ERROR("unkown word type");
+            ERROR("unknown data type");
             break;
         }
+        if(i == 0){break;}
     }
+    printf("-----------------\n");
+    
 }
