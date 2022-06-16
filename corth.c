@@ -152,6 +152,11 @@ void create_macro(FILE *file, uint64_t *id)
             ERROR("macro already defined");
         }
     }
+    if(macro_vec.size >= macro_vec.capacity)
+    {
+        macro_vec.capacity += 1024 * 10 * sizeof(Macro *);
+        macro_vec.macros = (Macro **)my_realloc(macro_vec.macros, macro_vec.capacity);
+    }
     macro_vec.macros[macro_vec.size] = my_malloc(sizeof(Macro));
     macro_vec.macros[macro_vec.size]->name = my_malloc((str_len + 1) * sizeof(char));
     macro_vec.macros[macro_vec.size]->size = 0;
@@ -163,10 +168,6 @@ void create_macro(FILE *file, uint64_t *id)
     str_len = 0;
     for (c = getc(file);;c = getc(file))
     {
-        if(c == EOF)
-        {
-            ERROR("not expect end of file");
-        }
         if(str_len == 0)
         {
             if(c == '\'')
@@ -246,7 +247,7 @@ void create_macro(FILE *file, uint64_t *id)
         {
             while ((c = getc(file)) != '\n' && c != EOF);
         }
-        if(c != ' ' && c != '\n')
+        if(c != ' ' && c != '\n' && c != EOF)
         {
             str[str_len++] = c;
             continue;
@@ -287,6 +288,10 @@ void create_macro(FILE *file, uint64_t *id)
             }
             str_len = 0;
             continue;
+        }
+        if(c == EOF)
+        {
+            ERROR("not expect end of file");
         }
     }
 }
@@ -392,9 +397,16 @@ int32_t parse_file(WordVec *word_vec, FILE *file)
             word = get_word(str);   
             word.id = id;
             id++;
-            if(word.type == WT_KEY_WORD && word.key_word == KW_MACRO)
+            if(word.type == WT_KEY_WORD)
             {
-                create_macro(file, &id);
+                if(word.key_word == KW_MACRO)
+                {
+                    create_macro(file, &id);
+                }
+                else if(word.key_word == KW_FUNC)
+                {
+                    create_func(file, &id);
+                }
             }
             else
             {
@@ -417,10 +429,6 @@ int32_t parse_file(WordVec *word_vec, FILE *file)
 
 void word_vec_push(WordVec *word_vec, Word* word)
 {
-    if(word_vec->size >= MAX_NUMBER_OF_STRINGS)
-    {
-        ERROR("vector overflow");
-    }
     if(word_vec->words[word_vec->size] != NULL)
     {
         if(word_vec->words[word_vec->size]->size > 0)
@@ -435,10 +443,19 @@ void word_vec_push(WordVec *word_vec, Word* word)
     word_vec->words[word_vec->size]->size = word->size;
     if(word->size > 0)
     {
-        word_vec->words[word_vec->size]->size = word->size - 2;
-        word_vec->words[word_vec->size]->value = my_malloc(word->size - 2);
-        memcpy(word_vec->words[word_vec->size]->value, word->value + 1, word_vec->words[word_vec->size]->size);
-        ((char *)word_vec->words[word_vec->size]->value)[word_vec->words[word_vec->size]->size - 1] = 0;
+        if(word->type == WT_DATA_TYPE && word->data_type == DT_STRING)
+        {
+            word_vec->words[word_vec->size]->size = word->size - 2;
+            word_vec->words[word_vec->size]->value = my_malloc(word->size - 2);
+            memcpy(word_vec->words[word_vec->size]->value, word->value + 1, word_vec->words[word_vec->size]->size);
+            ((char *)word_vec->words[word_vec->size]->value)[word_vec->words[word_vec->size]->size - 1] = 0;
+        }
+        else
+        {
+            word_vec->words[word_vec->size]->size = word->size;
+            word_vec->words[word_vec->size]->value = my_malloc(word->size);
+            memcpy(word_vec->words[word_vec->size]->value, word->value, word_vec->words[word_vec->size]->size);
+        }
     }
     switch (word->type)
     {
@@ -477,10 +494,6 @@ void word_vec_clear(WordVec *word_vec)
 
 void data_type_stack_push(DataTypeStack *dt_stack, DataType *data_type)
 {
-    if(dt_stack->size >= MAX_STACK_CAP)
-    {
-        ERROR("stack overflow");
-    }
     dt_stack->types[dt_stack->size++] = *data_type;
 }
 
@@ -560,6 +573,17 @@ Word get_word(char *str)
         if(!strcmp(str, macro_vec.macros[i]->name))
         {
             word.type = WT_MACRO;
+            word.size = strlen(str) + 1;
+            word.value = my_malloc(word.size * sizeof(char));
+            memcpy(word.value, str, word.size);
+            return word;
+        }
+    }
+    for (uint64_t i = 0; i < func_vec.size; i++)
+    {
+        if(!strcmp(str, func_vec.funcs[i]->name))
+        {
+            word.type = WT_FUNC;
             word.size = strlen(str) + 1;
             word.value = my_malloc(word.size * sizeof(char));
             memcpy(word.value, str, word.size);
@@ -874,7 +898,7 @@ void create_blocks(WordVec *parsed_file, uint64_t *i)
 
 void write_fasm_file(FILE *fasm_file, Word *word, DataTypeStack *data_type_stack, uint64_t *stack_size, uint64_t index)
 {
-    static uint16_t str_len[MAX_NUMBER_OF_STRINGS];
+    static uint16_t *str_len;
     static int32_t str_index = 0;
     DataType aux[3] = {0};
     switch (word->type)
@@ -882,13 +906,13 @@ void write_fasm_file(FILE *fasm_file, Word *word, DataTypeStack *data_type_stack
     case WT_COMMENT:
         break;
     case WT_DATA_TYPE:
-        data_type_stack_push(data_type_stack, &word->data_type);
         switch (word->data_type)
         {
         case DT_BOOL:
             UNIMPLEMENTED("DT_BOOL");
             break;
         case DT_CHAR:
+            data_type_stack_push(data_type_stack, &(DataType){DT_CHAR});
             fprintf(fasm_file, ";;--PUSH_CHAR ascii(%zu)--;;\n", (uint64_t)*(char *)word->value);
             fprintf(fasm_file, "    push %zu\n", (uint64_t)*(char *)word->value);
             break;
@@ -896,16 +920,20 @@ void write_fasm_file(FILE *fasm_file, Word *word, DataTypeStack *data_type_stack
             UNIMPLEMENTED("DT_FLOAT");
             break;
         case DT_INT:
+            data_type_stack_push(data_type_stack, &(DataType){DT_INT});
             fprintf(fasm_file, ";;--PUSH_INT %zu--;;\n", *(uint64_t *)word->value);
             fprintf(fasm_file, "    mov rax, %zu\n", *(uint64_t *)word->value);
             fprintf(fasm_file, "    push rax\n");
             break;
         case DT_STRING:
+            data_type_stack_push(data_type_stack, &(DataType){DT_INT});
+            data_type_stack_push(data_type_stack, &(DataType){DT_STRING});
             string_vec_push(&str_vec, word);
-            str_len[str_index++] = str_vec.strings[str_vec.size - 1]->size;
+            str_len[str_index] = str_vec.strings[str_vec.size - 1]->size;
             fprintf(fasm_file, ";;--PUSH_STRING--;;\n");
-            fprintf(fasm_file, "    lea rax, [str_%zu]\n", str_vec.size - 1);
+            fprintf(fasm_file, "    mov rax, %u\n", str_len[index++]);
             fprintf(fasm_file, "    push rax\n");
+            fprintf(fasm_file, "    push str_%zu\n", str_vec.size - 1);
             break;
         default:
             ERROR("unknown DataType");
@@ -1043,7 +1071,8 @@ void write_fasm_file(FILE *fasm_file, Word *word, DataTypeStack *data_type_stack
             switch (data_type_stack_pop(data_type_stack))
             {
             case DT_INT:
-                fprintf(fasm_file, "--KW_CAST_INT--;;\n");
+            case DT_PTR:
+                fprintf(fasm_file, ";;--KW_CAST_PTR--;;\n");
                 break;
             default:
                 ERROR("invalid cast to ptr");
@@ -1095,7 +1124,6 @@ void write_fasm_file(FILE *fasm_file, Word *word, DataTypeStack *data_type_stack
             fprintf(fasm_file, "    mov [rax], bl\n");
             break;
         case KW_WRITE16:
-            UNIMPLEMENTED();
             aux[0] = data_type_stack_pop(data_type_stack);
             aux[1] = data_type_stack_pop(data_type_stack);
             if(aux[1] != DT_PTR)
@@ -1259,11 +1287,17 @@ void write_fasm_file(FILE *fasm_file, Word *word, DataTypeStack *data_type_stack
                 fprintf(fasm_file, "    call dump\n");
                 break;
             case DT_STRING:
+                aux[0] = data_type_stack_pop(data_type_stack);
+                if(aux[0] != DT_INT)
+                {
+                    ERROR("expect string size(int)");
+                }
                 fprintf(fasm_file, ";;--PRINT_STR--;;\n");
                 fprintf(fasm_file, "    pop rax\n");
+                fprintf(fasm_file, "    pop rbx\n");
                 fprintf(fasm_file, "    lea rsi, [rax]\n");
                 fprintf(fasm_file, "    mov rdi, 1\n");
-                fprintf(fasm_file, "    mov rdx, %d\n", str_len[str_index - 1]);
+                fprintf(fasm_file, "    mov rdx, rbx\n");
                 fprintf(fasm_file, "    mov rax, 1\n");
                 fprintf(fasm_file, "    syscall\n");
                 break;
@@ -1438,6 +1472,15 @@ void write_fasm_file(FILE *fasm_file, Word *word, DataTypeStack *data_type_stack
 
 void compile(char *path)
 {
+    macro_vec.capacity = MAX_MACRO_NAMES;
+    macro_vec.macros = (Macro **)my_malloc(macro_vec.capacity * sizeof(Macro*));
+
+    str_vec.capacity = MAX_NUMBER_OF_STRINGS;
+    str_vec.strings = (String **)my_malloc(str_vec.capacity * sizeof(String*));
+
+    func_vec.capacity = MAX_NUMBER_OF_FUNCTIONS;
+    func_vec.funcs = (Func **)my_malloc(func_vec.capacity * sizeof(Func*));
+
     WordVec parsed_file = {0};
     char *out_file = (char *)my_malloc(strlen(path) * sizeof(char));
     memcpy(out_file, path, strlen(path) - 5);
@@ -1520,16 +1563,16 @@ void compile(char *path)
     word_vec_clear(&parsed_file);
     clear_macro_vec(&macro_vec);
 
+    my_free(macro_vec.macros);
+    my_free(str_vec.strings);
+    my_free(func_vec.funcs);
+
     fclose(fasm_file);
     fclose(corth_file);
 }
 
 void string_vec_push(StringVec *string_vec, Word *word)
 {
-    if(string_vec->size >= MAX_NUMBER_OF_STRINGS)
-    {
-        ERROR("string overflow");
-    }
     string_vec->strings[string_vec->size] = my_malloc(sizeof(String));
     string_vec->strings[string_vec->size]->size = (strlen((char *)word->value) + 1) * sizeof(char);
     string_vec->strings[string_vec->size]->str = malloc(string_vec->strings[string_vec->size]->size * sizeof(char));
@@ -1570,5 +1613,9 @@ void print_data_type_stack(DataTypeStack *data_type_stack)
         if(i == 0){break;}
     }
     printf("-----------------\n");
-    
+}
+
+void create_func(FILE *file, uint64_t *id)
+{
+    UNIMPLEMENTED();
 }

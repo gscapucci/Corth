@@ -13,6 +13,7 @@
 #define MAX_STACK_CAP 1024*200
 #define MAX_MACRO_NAMES 1024*100
 #define MAX_NUMBER_OF_STRINGS 1024*200
+#define MAX_NUMBER_OF_FUNCTIONS 1024*200
 
 typedef enum DataType DataType;
 typedef enum Op Op;
@@ -26,6 +27,8 @@ typedef struct DataTypeStack DataTypeStack;
 typedef struct WordVec WordVec;
 typedef struct String String;
 typedef struct StringVec StringVec;
+typedef struct Func Func;
+typedef struct FuncVec FuncVec;
 
 enum DataType {
     DT_INT,
@@ -57,6 +60,7 @@ enum WordType {
     WT_OP,
     WT_KEY_WORD,
     WT_MACRO,
+    WT_FUNC,
     WT_NONE = ' ',
     WT_COMMENT = '#'
 };
@@ -98,12 +102,13 @@ enum KeyWord {
     KW_WRITE16,
     KW_WRITE32,
     KW_WRITE64,
+    KW_FUNC,
     KW_COUNT
 };
 
 struct DataTypeStack
 {
-    DataType types[MAX_STACK_CAP];
+    DataType *types;
     uint64_t size;
 };
 
@@ -131,8 +136,8 @@ void compile(char *path);
 
 struct WordVec
 {
-    Word *words[MAX_NUMBER_OF_STRINGS];
-    uint64_t size;
+    Word **words;
+    uint64_t size, capacity;
 };
 
 void word_vec_push(WordVec *word_vec, Word* str);
@@ -149,8 +154,8 @@ struct Macro
 };
 struct MacroVec
 {
-    Macro *macros[MAX_MACRO_NAMES];
-    uint64_t size;
+    Macro **macros;
+    uint64_t size, capacity;
 };
 
 void create_macro(FILE *file, uint64_t *id);
@@ -165,12 +170,27 @@ struct String
 
 struct StringVec
 {
-    String *strings[MAX_NUMBER_OF_STRINGS];
-    uint64_t size;
+    String **strings;
+    uint64_t size, capacity;
 };
 
 void string_vec_push(StringVec *string_vec, Word *word);
 void clear_string_vec(StringVec *string_vec);
+
+struct Func
+{
+    char *name;
+    WordVec word_vec;
+    uint64_t size;
+};
+
+struct FuncVec
+{
+    Func **funcs;
+    uint64_t size, capacity;
+};
+
+void create_func(FILE *file, uint64_t *id);
 
 void read_corth_file(FILE *fasm_file, WordVec *word_vec);
 
@@ -222,7 +242,8 @@ static const char const *key_word[] = {
     "w8",
     "w16",
     "w32",
-    "w64"
+    "w64",
+    "func"
 };
 
 static const char const *ops[] = {
@@ -242,6 +263,7 @@ static const char const *ops[] = {
 
 static MacroVec macro_vec = {0};
 static StringVec str_vec = {0};
+static FuncVec func_vec = {0};
 
 void print_data_type_stack(DataTypeStack *data_type_stack);
 int32_t parse_file(WordVec *word_vec, FILE *file);

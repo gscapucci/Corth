@@ -18,9 +18,8 @@ def main():
 
 if __name__ == "__main__":
     main()
-    if len(sys.argv) == 2:
-        if sys.argv[1] == '-run':
-            run_echoed_cmd('./corth std.corth')
-            run_echoed_cmd('fasm -m 1000000 std.fasm')
-            run_echoed_cmd('./std')
+    if len(sys.argv) == 2 and sys.argv[1] == '-run':
+        run_echoed_cmd('./corth std.corth')
+        run_echoed_cmd('fasm -m 1000000 std.fasm')
+        run_echoed_cmd('./std')
 

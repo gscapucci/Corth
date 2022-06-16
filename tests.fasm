@@ -31,5 +31,23 @@ dump:
     syscall
     add     rsp, 40
     ret
+func_1:
+    push rbp
+    mov rbp, rsp
+    
+    mov rax, 0
+    push rax
+    pop rdi
+    call dump
+
+    pop rbp
+    ret
 entry main
 main:
+    call func_1
+    mov rax, 60
+    mov rdi, 0
+    syscall
+    ret
+segment readable writable
+mem rb 1048576

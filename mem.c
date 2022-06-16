@@ -9,8 +9,8 @@ struct Memory
     uint64_t size;
 };
 
-    #define MAX_NUMBER_OF_ALLOCATIONS 1024*1024
-    Memory memory[MAX_NUMBER_OF_ALLOCATIONS] = {0};
+#define MAX_NUMBER_OF_ALLOCATIONS 1024*1024
+Memory memory[MAX_NUMBER_OF_ALLOCATIONS] = {0};
 #endif
 
 void *my_malloc(uint64_t size)
@@ -18,7 +18,8 @@ void *my_malloc(uint64_t size)
     allocated += size;
     malloc_used++;
     #if DEBUG
-        max_allocated += size;
+        max_allocated_aux += size;
+        max_allocated = max_allocated_aux > max_allocated ? max_allocated_aux : max_allocated;
         void *mem = malloc(size);
         for (uint64_t i = 0; i < MAX_NUMBER_OF_ALLOCATIONS; i++)
         {
@@ -46,7 +47,7 @@ void *my_realloc(void *ptr, uint64_t size)
             {
                 printf("realloc at %p(%zu bytes) to %p(%zu bytes)\n", ptr, memory[i].size, mem, size);
                 memory[i].loc = (uintptr_t)mem;
-                max_allocated += size - memory[i].size;
+                max_allocated_aux += size - memory[i].size;
                 memory[i].size = size;
                 break;
             }
@@ -65,7 +66,7 @@ void my_free(void *ptr)
             if(memory[i].loc == (uintptr_t)ptr)
             {
                 printf("freed at %p(%zu bytes)\n", ptr, memory[i].size);
-                max_allocated -= memory[i].size;
+                max_allocated_aux -= memory[i].size;
                 memory[i].loc = 0;
                 memory[i].size = 0;
                 break;
@@ -93,7 +94,7 @@ void my_free(void *ptr)
             ERROR("unfreed memory\n");
         }
         printf("total allocated: %zu(bytes)\n", allocated);
-        printf("max used: %zu(bytes)", max_allocated);
+        printf("max used: %zu(bytes)\n", max_allocated);
     }
 #endif        
 

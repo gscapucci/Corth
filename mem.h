@@ -7,6 +7,7 @@
 
 #include "macros.h"
 
+static uint64_t max_allocated_aux = 0;
 static uint64_t max_allocated = 0;
 static uint64_t allocated = 0;
 static uint64_t malloc_used = 0;
