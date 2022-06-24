@@ -69,6 +69,7 @@ void clear_macro_vec(MacroVec *macroVec)
 
 void macro_vec_push(Macro* macro, Word *word)
 {
+
     if(macro->size == 0)
     {
         macro->words = (Word *)my_malloc(5 * sizeof(Word));
@@ -77,7 +78,7 @@ void macro_vec_push(Macro* macro, Word *word)
     {
         if(macro->size % 5 == 0)
         {
-            macro->words = my_realloc(macro->words, (macro->size + 5) * sizeof(Word));
+            macro->words = (Word *)my_realloc(macro->words, (macro->size + 5) * sizeof(Word));
         }
     }
     macro->words[macro->size].size = word->size;
@@ -112,6 +113,50 @@ void macro_vec_push(Macro* macro, Word *word)
     return;
 }
 
+void check_valid_name(char *str)
+{
+    if(is_float(str) || is_number(str))
+    {
+        ERROR("can not use an number to define a name");
+    }
+    for (uint64_t i = 0; i < KW_COUNT; i++)
+    {
+        if(!strcmp(str, key_word[i]))
+        {
+            ERROR("can not used a reserved word to define a name");
+        }
+    }
+    for (uint64_t i = 0; i < OP_COUNT; i++)
+    {
+        if(!strcmp(str, ops[i]))
+        {
+            ERROR("can not use an operator to define a name");
+        }
+    }
+    for (uint64_t i = 0; i < macro_vec.size; i++)
+    {
+        if(!strcmp(str, macro_vec.macros[i]->name))
+        {
+            ERROR("can not use a macro to define a name");
+        }
+    }
+    for (uint64_t i = 0; i < func_vec.size; i++)
+    {
+        if(!strcmp(str, func_vec.funcs[i]->name))
+        {
+            ERROR("can not use a function do defien a name");
+        }
+    }
+    
+    for (uint64_t i = 0; i < DT_COUNT; i++)
+    {
+        if(!strcmp(str, type_names[i]))
+        {
+            ERROR("can not use a type name to define a name");
+        }
+    }
+}
+
 void create_macro(FILE *file, uint64_t *id)
 {
     char str[1024] = {0};
@@ -127,38 +172,14 @@ void create_macro(FILE *file, uint64_t *id)
         }    
         str[str_len++] = c;
     }
-    if(is_float(str) || is_number(str))
-    {
-        ERROR("can not use an namer as a macro name");
-    }
-    for (uint64_t i = 0; i < KW_COUNT; i++)
-    {
-        if(!strcmp(str, key_word[i]))
-        {
-            ERROR("can not used a reserved word as a macro name");
-        }
-    }
-    for (uint64_t i = 0; i < OP_COUNT; i++)
-    {
-        if(!strcmp(str, ops[i]))
-        {
-            ERROR("can not use an operator as a macro name");
-        }
-    }
-    for (uint64_t i = 0; i < macro_vec.size; i++)
-    {
-        if(!strcmp(str, macro_vec.macros[i]->name))
-        {
-            ERROR("macro already defined");
-        }
-    }
+    check_valid_name(str);
     if(macro_vec.size >= macro_vec.capacity)
     {
         macro_vec.capacity += 1024 * 10 * sizeof(Macro *);
         macro_vec.macros = (Macro **)my_realloc(macro_vec.macros, macro_vec.capacity);
     }
-    macro_vec.macros[macro_vec.size] = my_malloc(sizeof(Macro));
-    macro_vec.macros[macro_vec.size]->name = my_malloc((str_len + 1) * sizeof(char));
+    macro_vec.macros[macro_vec.size] = (Macro *)my_malloc(sizeof(Macro));
+    macro_vec.macros[macro_vec.size]->name = (char *)my_malloc((str_len + 1) * sizeof(char));
     macro_vec.macros[macro_vec.size]->size = 0;
     memcpy(macro_vec.macros[macro_vec.size]->name, str, str_len + 1);
     for (uint64_t i = 0; str[i] != 0; i++)
@@ -402,16 +423,25 @@ int32_t parse_file(WordVec *word_vec, FILE *file)
                 if(word.key_word == KW_MACRO)
                 {
                     create_macro(file, &id);
+                    for (uint64_t i = 0; str[i] != 0; i++)
+                    {
+                        str[i] = 0;
+                    }
+                    str_len = 0;
+                    continue;
                 }
                 else if(word.key_word == KW_FUNC)
                 {
                     create_func(file, &id);
+                    for (uint64_t i = 0; str[i] != 0; i++)
+                    {
+                        str[i] = 0;
+                    }
+                    str_len = 0;
+                    continue;
                 }
             }
-            else
-            {
-                word_vec_push(word_vec, &word);
-            }
+            word_vec_push(word_vec, &word);
             if(word.size > 0)
             {
                 my_free(word.value);
@@ -471,6 +501,7 @@ void word_vec_push(WordVec *word_vec, Word* word)
     case WT_COMMENT:
     case WT_MACRO:
     case WT_NONE:
+    case WT_FUNC:
         break;
     default:
         ERROR("unknown word type");
@@ -546,6 +577,18 @@ bool is_float(char *str)
 Word get_word(char *str)
 {
     Word word;
+    for (uint64_t i = 0; i < DT_COUNT; i++)
+    {
+        if(!strcmp(str, type_names[i]))
+        {
+            word.type = WT_TYPE_NAME;
+            word.data_type = (DataType)i;
+            word.size = 0;
+            word.value = NULL;
+            return word;
+        }
+    }
+    
     for (uint64_t i = 0; i < OP_COUNT; i++)
     {
         if(!strcmp(str, ops[i]))
@@ -880,16 +923,16 @@ void create_blocks(WordVec *parsed_file, uint64_t *i)
         {
             if(parsed_file->words[j]->key_word == KW_IF)
             {
-                uint64_t start = *i;
-                create_if_block(parsed_file, i);
-                j += *i - start;
+                // uint64_t start = *i;
+                create_if_block(parsed_file, &j);
+                // j += *i - start;
                 continue;
             }
             if(parsed_file->words[j]->key_word == KW_WHILE)
             {
-                uint64_t start = *i;
-                create_while_block(parsed_file, i);
-                j += *i - start;
+                // uint64_t start = *i;
+                create_while_block(parsed_file, &j);
+                // j += *i - start;
                 continue;
             }
         }
@@ -1082,12 +1125,14 @@ void write_fasm_file(FILE *fasm_file, Word *word, DataTypeStack *data_type_stack
             break;
         case KW_FALSE:
             fprintf(fasm_file, ";;--KW_FALSE--;;\n");
-            fprintf(fasm_file, "    push 0\n");
+            fprintf(fasm_file, "    mov rax, 0\n");
+            fprintf(fasm_file, "    push rax\n");
             data_type_stack_push(data_type_stack, &(DataType){DT_BOOL});
             break;
         case KW_TRUE:
             fprintf(fasm_file, ";;--KW_TRUE--;;\n");
-            fprintf(fasm_file, "    push 1\n");
+            fprintf(fasm_file, "    mov rax, 1\n");
+            fprintf(fasm_file, "    push rax\n");
             data_type_stack_push(data_type_stack, &(DataType){DT_BOOL});
             break;
         case KW_WHILE:
@@ -1245,6 +1290,28 @@ void write_fasm_file(FILE *fasm_file, Word *word, DataTypeStack *data_type_stack
                 for (size_t k = 0; k < macro_vec.macros[j]->size; k++)
                 {
                     write_fasm_file(fasm_file, &macro_vec.macros[j]->words[k], data_type_stack, stack_size, index);
+                }
+            }
+        }
+        break;
+    case WT_FUNC:
+        for (uint64_t j = 0; j < func_vec.size; j++)
+        {
+            if(!strcmp((char *)word->value, func_vec.funcs[j]->name))
+            {
+                for (uint64_t k = 0; k < func_vec.funcs[j]->args->size; k++)
+                {
+                    aux[0] = data_type_stack_pop(data_type_stack);
+                    if(aux[0] != func_vec.funcs[j]->args->types[(func_vec.funcs[j]->args->size - 1) - k])
+                    {
+                        ERROR("invalid function args");
+                    }
+                }
+                fprintf(fasm_file, ";;--FUNCTION_CALL--;;\n");
+                fprintf(fasm_file, "    call %s\n", func_vec.funcs[j]->name);
+                for (uint64_t k = 0; k < func_vec.funcs[j]->ret->size; k++)
+                {
+                    data_type_stack_push(data_type_stack, &func_vec.funcs[j]->ret->types[k]);
                 }
             }
         }
@@ -1472,6 +1539,11 @@ void write_fasm_file(FILE *fasm_file, Word *word, DataTypeStack *data_type_stack
 
 void compile(char *path)
 {
+    WordVec parsed_file = {0};
+
+    parsed_file.capacity = MAX_NUMBER_OF_WORDS;
+    parsed_file.words = (Word **)my_malloc(parsed_file.capacity * sizeof(Word*));
+
     macro_vec.capacity = MAX_MACRO_NAMES;
     macro_vec.macros = (Macro **)my_malloc(macro_vec.capacity * sizeof(Macro*));
 
@@ -1481,7 +1553,9 @@ void compile(char *path)
     func_vec.capacity = MAX_NUMBER_OF_FUNCTIONS;
     func_vec.funcs = (Func **)my_malloc(func_vec.capacity * sizeof(Func*));
 
-    WordVec parsed_file = {0};
+    DataTypeStack data_type_stack = {0};
+    data_type_stack.types = (DataType *)my_malloc(MAX_STACK_CAP * sizeof(DataType));
+
     char *out_file = (char *)my_malloc(strlen(path) * sizeof(char));
     memcpy(out_file, path, strlen(path) - 5);
     memcpy(out_file + strlen(path) - 5, "fasm", 5);
@@ -1491,9 +1565,9 @@ void compile(char *path)
     my_free(out_file);
 
     parse_file(&parsed_file, corth_file);
-    // print_parsed_file(&parsed_file);
     uint64_t index = 0;
     create_blocks(&parsed_file, &index);
+    
     // type_check();
     fprintf(fasm_file, "format ELF64 executable 3\n");
     fprintf(fasm_file, "segment readable executable\n");
@@ -1530,10 +1604,11 @@ void compile(char *path)
     fprintf(fasm_file, "    add     rsp, 40\n");
     fprintf(fasm_file, "    ret\n");
     
+    write_functions(fasm_file);
+
     fprintf(fasm_file, "entry main\n");
     fprintf(fasm_file, "main:\n");
     
-    DataTypeStack data_type_stack = {0};
     uint64_t stack_size = 0;
     
     for (uint64_t i = 0; i < parsed_file.size; i++)
@@ -1617,5 +1692,262 @@ void print_data_type_stack(DataTypeStack *data_type_stack)
 
 void create_func(FILE *file, uint64_t *id)
 {
-    UNIMPLEMENTED();
+    char str[1024] = {0};
+    uint64_t str_len = 0;
+    uint64_t block_deepth = 0;
+    char c;
+    Word word = {0};
+    bool args = true;
+    for (c = getc(file); !(c == '\n' || c == ' '); c = getc(file))
+    {
+        if(c == EOF)
+        {
+            ERROR("not expect end of file");
+        }    
+        str[str_len++] = c;
+    }
+    check_valid_name(str);
+    func_vec.funcs[func_vec.size] = (Func *)my_malloc(sizeof(Func));
+    func_vec.funcs[func_vec.size]->name = (char *)my_malloc((str_len + 1) * sizeof(char));
+    
+    func_vec.funcs[func_vec.size]->args = (DataTypeStack *)my_malloc(sizeof(DataTypeStack));
+    func_vec.funcs[func_vec.size]->args->size = 0;
+    func_vec.funcs[func_vec.size]->args->types = (DataType *)my_malloc(MAX_NUMBER_OF_FUNCTION_PARAMETERS * sizeof(DataType));
+    
+    func_vec.funcs[func_vec.size]->ret = (DataTypeStack *)my_malloc(sizeof(DataTypeStack));
+    func_vec.funcs[func_vec.size]->ret->size = 0;
+    func_vec.funcs[func_vec.size]->ret->types = (DataType *)my_malloc(MAX_NUMBER_OF_FUNCTION_PARAMETERS * sizeof(DataType));
+
+    func_vec.funcs[func_vec.size]->func_body.capacity = MAX_STACK_CAP;
+    func_vec.funcs[func_vec.size]->func_body.words = (Word **)my_malloc(func_vec.funcs[func_vec.size]->func_body.capacity * sizeof(Word*));
+    memcpy(func_vec.funcs[func_vec.size]->name, str, str_len + 1);
+    for (uint64_t i = 0; i < str_len; i++)
+    {
+        str[i] = 0;
+    }
+    str_len = 0;
+    for(c = getc(file);;c = getc(file))
+    {
+        if(c == EOF)
+        {
+            ERROR("not expect end of file");
+        }
+        if(c != '\n' && c != ' ')
+        {
+            str[str_len++] = c;
+            continue;
+        }
+        if(str_len > 0)
+        {
+            word = get_word(str);
+            if(word.type == WT_KEY_WORD && word.key_word == KW_DO)
+            {
+                for (uint64_t i = 0; str[i] != 0; i++)
+                {
+                    str[i] = 0;
+                }
+                str_len = 0;
+                break;
+            }
+            if(word.type == WT_KEY_WORD && word.key_word == KW_MINUS_MINUS)
+            {
+                args = false;
+                str[0] = 0;
+                str[1] = 0;
+                str_len = 0;
+                continue;
+            }
+            if(word.type != WT_TYPE_NAME)
+            {
+                ERROR("function definition only accept type names");
+            }
+            if(args)
+            {
+                data_type_stack_push(func_vec.funcs[func_vec.size]->args, &(DataType){word.data_type});
+            }
+            else
+            {
+                data_type_stack_push(func_vec.funcs[func_vec.size]->ret, &(DataType){word.data_type});
+            }
+            for (uint64_t i = 0; i < str_len; i++)
+            {
+                str[i] = 0;
+            }
+            str_len = 0;
+            continue;
+        }
+    }
+    for (char c = getc(file);;c = getc(file))
+    {
+        if(c == EOF)
+        {
+            ERROR("not expect end of file");
+        }
+        if(str_len == 0)
+        {
+            if(c == '\'')
+            {
+                str[str_len++] = c;
+                c = getc(file);
+                if(c == EOF)
+                {
+                    ERROR("not expect end of file");
+                }
+                while (!(c == '\'' && str[str_len - 1] != '\\'))
+                {
+                    if(c == EOF)
+                    {
+                        ERROR("not expect end of file");
+                    }
+                    str[str_len++] = c;
+                    c = getc(file);
+                }
+                str[str_len++] = c;
+                escape_str(str);
+                if(strlen(str) > 3)
+                {
+                    ERROR("lengh of char must be one");
+                }
+                word = get_word(str);
+                word.id = *id;
+                (*id)++;
+                word_vec_push(&func_vec.funcs[func_vec.size]->func_body, &word);
+                if(word.size > 0)
+                {
+                    my_free(word.value);
+                }
+                for (uint64_t i = 0; str[i] != 0; i++)
+                {
+                    str[i] = 0;
+                }
+                str_len = 0;
+                continue;
+            }
+            if(c == '\"')
+            {
+                str[str_len++] = c;
+                c= getc(file);
+                if(c == EOF)
+                {
+                    ERROR("not expect end of file");
+                }
+                while (c != '\"' || str[str_len - 1] != '\\')
+                {
+                    if(c == EOF)
+                    {
+                        ERROR("not expect end of file");
+                    }
+                    str[str_len] = c;
+                    c = getc(file);
+                }
+                str[str_len++] = c;
+                escape_str(str);
+                word = get_word(str);
+                word.id = *id;
+                (*id)++;
+                word_vec_push(&func_vec.funcs[func_vec.size]->func_body, &word);
+                if(word.size > 0)
+                {
+                    my_free(word.value);
+                }
+                for (uint64_t i = 0; str[i] != 0; i++)
+                {
+                    str[i] = 0;
+                }
+                str_len = 0;
+                continue;
+            }
+        }
+        if(c == '#')
+        {
+            while ((c = getc(file)) != '\n' && c != EOF);
+        }
+        if(c != ' ' && c != '\n' && c != EOF)
+        {
+            str[str_len++] = c;
+            continue;
+        }
+        if(str_len > 0)
+        {
+            word = get_word(str);   
+            word.id = *id;
+            (*id)++;
+            if(word.type == WT_KEY_WORD)
+            {
+                if(word.key_word == KW_WHILE || word.key_word == KW_IF)
+                {
+                    block_deepth++;
+                }
+                else if(word.key_word == KW_END)
+                {
+                    if(block_deepth == 0)
+                    {
+                        func_vec.size++;
+                        return;
+                    }
+                    block_deepth--;
+                }
+            }
+            word_vec_push(&func_vec.funcs[func_vec.size]->func_body, &word);
+            if(word.type == WT_KEY_WORD && word.key_word == KW_MACRO)
+            {
+                ERROR("not expect key word macro inside a function");
+            }
+            if(word.size > 0)
+            {
+                my_free(word.value);
+            }
+            for (uint64_t i = 0; str[i] != 0; i++)
+            {
+                str[i] = 0;
+            }
+            str_len = 0;
+            continue;
+        }
+        if(c == EOF)
+        {
+            ERROR("not expect end of file");
+        }
+    }
+}
+
+void write_function(FILE *file, Func *func)
+{
+    DataTypeStack dt_stack = {0};
+    dt_stack.types = (DataType *)my_malloc(MAX_NUMBER_OF_FUNCTION_PARAMETERS * sizeof(DataType));
+    uint64_t stack_size = 0;
+
+    for (uint64_t i = 0; i < func->args->size; i++)
+    {
+        data_type_stack_push(&dt_stack, &func->args->types[i]);
+    }
+    fprintf(file, "%s:\n", func->name);
+    fprintf(file, "    pop rbp\n");
+    for (uint64_t i = 0; i < func->func_body.size; i++)
+    {
+        write_fasm_file(file, func->func_body.words[i], &dt_stack, &stack_size, i);
+    }
+    fprintf(file, "    push rbp\n");
+    fprintf(file, "    ret\n");
+    if(dt_stack.size != func->ret->size)
+    {
+        fprintf(stderr, "%zu %zu\n", dt_stack.size, func->ret->size);
+        ERROR("invalid return");
+    }
+    for (uint64_t i = 0; i < func->ret->size; i++)
+    {
+        if(dt_stack.types[(dt_stack.size - 1) - i] != func->ret->types[(func->ret->size - 1) - i])
+        {
+            ERROR("return not expect");
+        }
+    }
+}
+
+
+void write_functions(FILE *file)
+{
+    for (uint64_t i = 0; i < func_vec.size; i++)
+    {
+        write_function(file, func_vec.funcs[i]);
+    }   
 }

@@ -11,9 +11,11 @@
 #define DEBUG 0
 #define MEM_CAP 1024*1024
 #define MAX_STACK_CAP 1024*200
+#define MAX_NUMBER_OF_WORDS 1024*200
 #define MAX_MACRO_NAMES 1024*100
 #define MAX_NUMBER_OF_STRINGS 1024*200
 #define MAX_NUMBER_OF_FUNCTIONS 1024*200
+#define MAX_NUMBER_OF_FUNCTION_PARAMETERS 30
 
 typedef enum DataType DataType;
 typedef enum Op Op;
@@ -36,7 +38,8 @@ enum DataType {
     DT_STRING,
     DT_BOOL,
     DT_FLOAT,
-    DT_PTR
+    DT_PTR,
+    DT_COUNT
 };
 
 enum Op {
@@ -61,6 +64,7 @@ enum WordType {
     WT_KEY_WORD,
     WT_MACRO,
     WT_FUNC,
+    WT_TYPE_NAME,
     WT_NONE = ' ',
     WT_COMMENT = '#'
 };
@@ -103,6 +107,7 @@ enum KeyWord {
     KW_WRITE32,
     KW_WRITE64,
     KW_FUNC,
+    KW_MINUS_MINUS,
     KW_COUNT
 };
 
@@ -180,8 +185,8 @@ void clear_string_vec(StringVec *string_vec);
 struct Func
 {
     char *name;
-    WordVec word_vec;
-    uint64_t size;
+    WordVec func_body;
+    DataTypeStack *args, *ret;
 };
 
 struct FuncVec
@@ -199,7 +204,8 @@ static const char const *type_names[] = {
     "char",
     "str",
     "bool",
-    "float"
+    "float",
+    "ptr"
 };
 
 // dup  ( a -- a a )
@@ -243,7 +249,8 @@ static const char const *key_word[] = {
     "w16",
     "w32",
     "w64",
-    "func"
+    "func",
+    "--"
 };
 
 static const char const *ops[] = {
@@ -277,4 +284,7 @@ void create_if_block(WordVec *parsed_file, uint64_t *i);
 void create_while_block(WordVec *parsed_file, uint64_t *i);
 void create_blocks(WordVec *parsed_file, uint64_t *i);
 void print_parsed_file(WordVec *word_vec);
+void check_valid_name(char *str);
+void write_function(FILE *file, Func *func);
+void write_functions(FILE *file);
 #endif /* CORTH_H */

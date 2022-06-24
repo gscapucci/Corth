@@ -32,15 +32,15 @@ dump:
     add     rsp, 40
     ret
 func_1:
-    push rbp
-    mov rbp, rsp
+    push rax
+    mov rax, rsp
     
     mov rax, 0
     push rax
     pop rdi
     call dump
 
-    pop rbp
+    pop rax
     ret
 entry main
 main:

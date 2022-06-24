@@ -102,3 +102,4 @@ main:
     syscall
     ret
 segment readable writable
+mem rb 1048576
