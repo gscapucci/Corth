@@ -283,6 +283,8 @@ void create_macro_while_block(Macro *macro, uint64_t *i, uint64_t macro_vec_inde
 void create_if_block(WordVec *parsed_file, uint64_t *i);
 void create_while_block(WordVec *parsed_file, uint64_t *i);
 void create_blocks(WordVec *parsed_file, uint64_t *i);
+void creaet_func_if_block(Func *func, uint64_t *i, uint64_t func_vec_index, uint64_t parsed_file_index);
+void creaet_func_while_block(Func *func, uint64_t *i, uint64_t func_vec_index, uint64_t parsed_file_index);
 void print_parsed_file(WordVec *word_vec);
 void check_valid_name(char *str);
 void write_function(FILE *file, Func *func);

@@ -894,6 +894,111 @@ void create_macro_while_block(Macro *macro, uint64_t *i, uint64_t macro_vec_inde
     }
 }
 
+
+void create_func_if_block(Func *func, uint64_t *i, uint64_t func_vec_index, uint64_t parsed_file_index)
+{
+    uint64_t if_index = *i;
+    func->func_body.words[func_vec_index]->size = sizeof(uint64_t);
+    func->func_body.words[func_vec_index]->value = my_malloc(func->func_body.words[func_vec_index]->size);
+    for (uint64_t index = func_vec_index;true;index++)
+    {
+        (*i)++;
+        // if((*i) >= parsed_file_index)
+        // {
+        //     ERROR("unclosed if");
+        // }
+        if(func->func_body.words[index]->type == WT_KEY_WORD && func->func_body.words[index]->key_word == KW_IF)
+        {
+            create_func_if_block(func, i, index, parsed_file_index);
+        }
+        if(func->func_body.words[index]->type == WT_KEY_WORD && (func->func_body.words[index]->key_word == KW_ELSE || func->func_body.words[index]->key_word == KW_END))
+        {
+            memcpy(func->func_body.words[func_vec_index]->value, i, sizeof(uint64_t));
+            if(func->func_body.words[index]->key_word == KW_ELSE)
+            {
+                uint64_t else_index = index;
+                func->func_body.words[index]->size = 2 * sizeof(uint64_t);
+                func->func_body.words[index]->value = my_malloc(func->func_body.words[index]->size);
+                while (true)
+                {
+                    (*i)++;
+                    if(func->func_body.words[index]->type == WT_KEY_WORD && func->func_body.words[index]->key_word == KW_IF)
+                    {
+                        create_func_if_block(func, i, func_vec_index, parsed_file_index);
+                    }
+                    if(func->func_body.words[index]->type == WT_KEY_WORD && func->func_body.words[index]->key_word == KW_END)
+                    {
+                        func->func_body.words[index]->size = 2 * sizeof(uint64_t);
+                        func->func_body.words[index]->value = my_malloc(func->func_body.words[index]->size);
+                        memcpy(func->func_body.words[index]->value, i, sizeof(uint64_t));
+                        memcpy(func->func_body.words[index]->value + sizeof(uint64_t), i, sizeof(uint64_t));
+                        memcpy(func->func_body.words[else_index]->value, i, sizeof(uint64_t));
+                        (*i)++;
+                        return;
+                    }
+                }
+            }
+            (*i)++;
+            return;
+        }
+    }
+}
+void create_func_while_block(Func *func, uint64_t *i, uint64_t func_vec_index, uint64_t parsed_file_index)
+{
+    uint64_t while_index = *i;
+    func->func_body.words[func_vec_index]->size = sizeof(uint64_t);
+    func->func_body.words[func_vec_index]->value = my_malloc(func->func_body.words[func_vec_index]->size);
+    memcpy(func->func_body.words[func_vec_index]->value, &while_index, sizeof(uint64_t));
+    for(uint64_t index = func_vec_index;true;index++)
+    {
+        (*i)++;
+        // if((*i) >= parsed_file_size)
+        // {
+        //     printf("\n%zu %zu\n", *i, parsed_file_size);
+        //     printf("\n%d\n", macro->words[index].type);
+        //     printf("\n%d\n", macro->words[index].key_word);
+        //     ERROR("unclosed while");
+        // }
+        if(func->func_body.words[index]->type == WT_KEY_WORD)
+        {
+            if(func->func_body.words[index]->key_word == KW_DO)
+            {
+                uint64_t do_index = index;
+                func->func_body.words[do_index]->size = sizeof(uint64_t);
+                func->func_body.words[do_index]->value = my_malloc(func->func_body.words[do_index]->size);
+                while (true)
+                {
+                    index++;
+                    (*i)++;
+                    // if(*i >= macro->size)
+                    // {
+                    //     ERROR("unclosed do");
+                    // }
+                    if(func->func_body.words[index]->type == WT_KEY_WORD)
+                    {
+                        if(func->func_body.words[index]->key_word == KW_END)
+                        {
+                            uint64_t end_index = index;
+                            memcpy(func->func_body.words[do_index]->value, i, sizeof(uint64_t));
+                            func->func_body.words[end_index]->size = 2 * sizeof(uint64_t);
+                            func->func_body.words[end_index]->value = my_malloc(func->func_body.words[end_index]->size);
+                            memcpy(func->func_body.words[end_index]->value, &while_index, sizeof(uint64_t));
+                            memcpy(func->func_body.words[end_index]->value + sizeof(uint64_t), i, sizeof(uint64_t));
+                            (*i)++;
+                            return;
+                        }
+                        if(func->func_body.words[index]->key_word == KW_IF)
+                        {
+                            create_func_if_block(func, i, index, parsed_file_index);
+                        }
+                    }
+                }
+            }
+            continue;
+        }
+    }
+}
+
 void create_blocks(WordVec *parsed_file, uint64_t *i)
 {
 
@@ -916,6 +1021,28 @@ void create_blocks(WordVec *parsed_file, uint64_t *i)
             }
         }
     }
+
+    for (uint64_t j = 0; j < func_vec.size; j++)
+    {
+        for (uint64_t k = 0; k < func_vec.funcs[j]->func_body.size; k++)
+        {
+            if(func_vec.funcs[j]->func_body.words[k]->type == WT_KEY_WORD)
+            {
+                if(func_vec.funcs[j]->func_body.words[k]->key_word == KW_IF)
+                {
+                    create_func_if_block(func_vec.funcs[j], i, k, parsed_file->size);
+                    continue;
+                }
+                if(func_vec.funcs[j]->func_body.words[k]->key_word == KW_WHILE)
+                {
+                    create_func_while_block(func_vec.funcs[j], i, k, parsed_file->size);
+                    continue;
+                }
+            }
+        }
+        
+    }
+    
     
     for (uint64_t j = 0; j < parsed_file->size; j++, (*i)++)
     {
