@@ -24,12 +24,15 @@ macro putptr cast(ptr) . end
 macro putf cast(float) . end
 
 func AZ char -- char do
-    cast(int) while dup 'Z' cast(int) < do
+    dup cast(int) while dup 'Z' cast(int) <= do
         dup putc
         1 +
-    end cast(char)
+    end drop
 end
 
 'A'
 AZ
+'\n' putc
+AZ
+'\n' putc
 drop

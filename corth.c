@@ -1435,7 +1435,7 @@ void write_fasm_file(FILE *fasm_file, Word *word, DataTypeStack *data_type_stack
                     }
                 }
                 fprintf(fasm_file, ";;--FUNCTION_CALL--;;\n");
-                fprintf(fasm_file, "    call %s\n", func_vec.funcs[j]->name);
+                fprintf(fasm_file, "    call addr_%s\n", func_vec.funcs[j]->name);
                 for (uint64_t k = 0; k < func_vec.funcs[j]->ret->size; k++)
                 {
                     data_type_stack_push(data_type_stack, &func_vec.funcs[j]->ret->types[k]);
@@ -2048,7 +2048,7 @@ void write_function(FILE *file, Func *func)
     {
         data_type_stack_push(&dt_stack, &func->args->types[i]);
     }
-    fprintf(file, "%s:\n", func->name);
+    fprintf(file, "addr_%s:\n", func->name);
     fprintf(file, "    pop rbp\n");
     for (uint64_t i = 0; i < func->func_body.size; i++)
     {
