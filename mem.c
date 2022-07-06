@@ -23,6 +23,10 @@ void *my_malloc(uint64_t size)
         void *mem = malloc(size);
         for (uint64_t i = 0; i < MAX_NUMBER_OF_ALLOCATIONS; i++)
         {
+            if(i == 81 && size == 16)
+            {
+                int a = 0;
+            }
             if(memory[i].loc == 0)
             {
                 memory[i].loc = (uintptr_t)mem;
@@ -82,19 +86,27 @@ void my_free(void *ptr)
         printf("mallocs: %zu\n", malloc_used);
         printf("frees: %zu\n", free_used);
         printf("diff: %zu\n", malloc_used - free_used);
-        if(malloc_used - free_used != 0)
+        if(malloc_used != free_used)
         {
             for (uint64_t i = 0; i < MAX_NUMBER_OF_ALLOCATIONS; i++)
             {
                 if(memory[i].size != 0)
                 {
-                    fprintf(stderr, "unfreed %p(%zu bytes) i(%zu)\n", (void *)memory[i].loc, memory[i].size, i);
+                    printf("unfreed %p(%zu bytes) i(%zu)\n", (void *)memory[i].loc, memory[i].size, i);
                 }
             }
+            fflush(stdout);
             ERROR("unfreed memory\n");
         }
         printf("total allocated: %zu(bytes)\n", allocated);
         printf("max used: %zu(bytes)\n", max_allocated);
     }
-#endif        
-
+#else
+    void check_mem()
+    {
+        if(malloc_used != free_used)
+        {
+            ERROR("something worng with memory");
+        }
+    }
+#endif

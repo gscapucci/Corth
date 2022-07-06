@@ -87,38 +87,98 @@ addr_67:
     pop rax
     push rbp
     ret
+addr_az:
+    pop rbp
+;;--KW_DUP--;;
+    pop rax
+    push rax
+    push rax
+;;--KW_CAST_INT--;;
+;;--KW_WHILE--;;
+addr_68:
+;;--KW_DUP--;;
+    pop rax
+    push rax
+    push rax
+;;--PUSH_CHAR ascii(122)--;;
+    push 122
+;;--KW_CAST_INT--;;
+;;--OP_LESS--;;
+    mov rcx, 0
+    mov rdx, 1
+    pop rax
+    pop rbx
+    cmp rbx, rax
+    cmovle rcx, rdx
+    push rcx
+;;--KW_DO--;;
+    pop rax
+    cmp rax, 0
+    je addr_79
+;;--KW_DUP--;;
+    pop rax
+    push rax
+    push rax
+;;--KW_CAST_CHAR--;;
+;;--PRINT_CHAR--;;
+    pop rax
+    mov BYTE [rsp+31], al
+    lea rsi, [rsp+31]
+    mov rdi, 1
+    mov rdx, 1
+    mov rax, 1
+    syscall
+;;--PUSH_INT 1--;;
+    mov rax, 1
+    push rax
+;;--OP_ADD--;;
+    pop rbx
+    pop rax
+    add rax, rbx
+    push rax
+;;--KW_END--;;
+    jmp addr_68
+addr_79:
+;;--KW_DROP--;;
+    pop rax
+    push rbp
+    ret
 entry main
 main:
+;;--PUSH_CHAR ascii(97)--;;
+    push 97
+;;--FUNCTION_CALL--;;
+    call addr_az
+;;--KW_DROP--;;
+    pop rax
+;;--PUSH_CHAR ascii(10)--;;
+    push 10
+;;--KW_CAST_CHAR--;;
+;;--PRINT_CHAR--;;
+    pop rax
+    mov BYTE [rsp+31], al
+    lea rsi, [rsp+31]
+    mov rdi, 1
+    mov rdx, 1
+    mov rax, 1
+    syscall
 ;;--PUSH_CHAR ascii(65)--;;
     push 65
 ;;--FUNCTION_CALL--;;
     call addr_AZ
-;;--PUSH_CHAR ascii(10)--;;
-    push 10
-;;--KW_CAST_CHAR--;;
-;;--PRINT_CHAR--;;
-    pop rax
-    mov BYTE [rsp+31], al
-    lea rsi, [rsp+31]
-    mov rdi, 1
-    mov rdx, 1
-    mov rax, 1
-    syscall
-;;--FUNCTION_CALL--;;
-    call addr_AZ
-;;--PUSH_CHAR ascii(10)--;;
-    push 10
-;;--KW_CAST_CHAR--;;
-;;--PRINT_CHAR--;;
-    pop rax
-    mov BYTE [rsp+31], al
-    lea rsi, [rsp+31]
-    mov rdi, 1
-    mov rdx, 1
-    mov rax, 1
-    syscall
 ;;--KW_DROP--;;
     pop rax
+;;--PUSH_CHAR ascii(10)--;;
+    push 10
+;;--KW_CAST_CHAR--;;
+;;--PRINT_CHAR--;;
+    pop rax
+    mov BYTE [rsp+31], al
+    lea rsi, [rsp+31]
+    mov rdi, 1
+    mov rdx, 1
+    mov rax, 1
+    syscall
     mov rax, 60
     mov rdi, 0
     syscall

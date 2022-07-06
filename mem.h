@@ -17,4 +17,5 @@ void *my_malloc(uint64_t size);
 void *my_realloc(void *ptr, uint64_t size);
 void my_free(void *ptr);
 void print_mem();
+void check_mem();
 #endif /* MEM_H */

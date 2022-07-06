@@ -17,10 +17,7 @@ int main(int argc, char **argv)
             print_mem();
             printf("[DEBUG] End debug info.\n");
         #else
-            if(malloc_used - free_used != 0)
-            {
-                ERROR("something worng with memory");
-            }
+            check_mem();
         #endif
         
         return 0;

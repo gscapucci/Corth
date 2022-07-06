@@ -3,10 +3,10 @@ macro sizeof(ptr) 8 end
 macro sizeof(char) 1 end
 macro sizeof(bool) 1 end
 
-macro inc_ptr8 cast(int) 1 + cast(ptr) end
-macro inc_ptr16 cast(int) 2 + cast(ptr) end 
-macro inc_ptr32 cast(int) 4 + cast(ptr) end 
-macro inc_ptr64 cast(int) 8 + cast(ptr) end 
+macro inc_ptr(8) cast(int) 1 + cast(ptr) end
+macro inc_ptr(16) cast(int) 2 + cast(ptr) end 
+macro inc_ptr(32) cast(int) 4 + cast(ptr) end 
+macro inc_ptr(64) cast(int) 8 + cast(ptr) end 
 
 macro sub_ptr(8) cast(int) 1 - cast(ptr) end
 macro sub_ptr(16) cast(int) 2 - cast(ptr) end
@@ -30,9 +30,14 @@ func AZ char -- char do
     end drop
 end
 
-'A'
-AZ
+func az char -- char do
+    dup cast(int) while dup 'z' cast(int) <= do
+        dup putc
+        1 +
+    end drop
+end
+
+'a' az drop
 '\n' putc
-AZ
+'A' AZ drop
 '\n' putc
-drop

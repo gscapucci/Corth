@@ -65,6 +65,7 @@ void clear_macro_vec(MacroVec *macroVec)
         my_free(macroVec->macros[i]->name);
         my_free(macroVec->macros[i]);
     }
+    my_free(macroVec->macros);
 }
 
 void macro_vec_push(Macro* macro, Word *word)
@@ -510,7 +511,7 @@ void word_vec_push(WordVec *word_vec, Word* word)
     word_vec->size++;
 }
 
-void word_vec_clear(WordVec *word_vec)
+void clear_word_vec(WordVec *word_vec)
 {
     for (uint64_t i = 0; i < word_vec->size; i++)
     {
@@ -520,6 +521,7 @@ void word_vec_clear(WordVec *word_vec)
         }
         my_free(word_vec->words[i]);
     }
+    my_free(word_vec->words);
     word_vec->size = 0;
 }
 
@@ -1762,12 +1764,12 @@ void compile(char *path)
         fprintf(fasm_file, "0\n");
     }
     fprintf(fasm_file, "mem rb %d\n", MEM_CAP);
-    word_vec_clear(&parsed_file);
+    
+    clear_word_vec(&parsed_file);
     clear_macro_vec(&macro_vec);
-
-    my_free(macro_vec.macros);
-    my_free(str_vec.strings);
-    my_free(func_vec.funcs);
+    clear_string_vec(&str_vec);
+    clear_func_vec(&func_vec);
+    my_free(data_type_stack.types);
 
     fclose(fasm_file);
     fclose(corth_file);
@@ -1779,7 +1781,26 @@ void string_vec_push(StringVec *string_vec, Word *word)
     string_vec->strings[string_vec->size]->size = (strlen((char *)word->value) + 1) * sizeof(char);
     string_vec->strings[string_vec->size]->str = malloc(string_vec->strings[string_vec->size]->size * sizeof(char));
     memcpy(string_vec->strings[string_vec->size]->str, word->value, string_vec->strings[string_vec->size]->size);
-    string_vec->size++;   
+    string_vec->size++;
+}
+
+void clear_string_vec(StringVec *string_vec)
+{
+    if(string_vec)
+    {
+        for (uint64_t i = 0; i < string_vec->size; i++)
+        {
+            if(string_vec->strings[i])
+            {
+                if(string_vec->strings[i]->str)
+                {
+                    my_free(string_vec->strings[i]->str); 
+                }
+            }
+            my_free(string_vec->strings[i]);
+        }
+        my_free(string_vec->strings);
+    }
 }
 
 void print_data_type_stack(DataTypeStack *data_type_stack)
@@ -2038,6 +2059,42 @@ void create_func(FILE *file, uint64_t *id)
     }
 }
 
+void clear_func_vec(FuncVec *function_vec)
+{
+    if(function_vec)
+    {
+        for (uint64_t i = 0; i < function_vec->size; i++)
+        {
+            if(function_vec->funcs[i])
+            {
+                if(function_vec->funcs[i]->args)
+                {
+                    if(function_vec->funcs[i]->args->types)
+                    {
+                        my_free(function_vec->funcs[i]->args->types);
+                    }
+                    my_free(function_vec->funcs[i]->args);
+                }
+                if(function_vec->funcs[i]->name)
+                {
+                    my_free(function_vec->funcs[i]->name);
+                }
+                if(function_vec->funcs[i]->ret)
+                {
+                    if(function_vec->funcs[i]->ret->types)
+                    {
+                        my_free(function_vec->funcs[i]->ret->types);
+                    }
+                    my_free(function_vec->funcs[i]->ret);
+                }
+                clear_word_vec(&function_vec->funcs[i]->func_body);
+                my_free(function_vec->funcs[i]);
+            }
+        }
+        my_free(function_vec->funcs);
+    }
+}
+
 void write_function(FILE *file, Func *func)
 {
     DataTypeStack dt_stack = {0};
@@ -2068,6 +2125,7 @@ void write_function(FILE *file, Func *func)
             ERROR("return not expect");
         }
     }
+    my_free(dt_stack.types);
 }
 
 

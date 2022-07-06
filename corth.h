@@ -147,7 +147,7 @@ struct WordVec
 
 void word_vec_push(WordVec *word_vec, Word* str);
 char *word_vec_pop(WordVec *word_vec);
-void word_vec_clear(WordVec *word_vec);
+void clear_word_vec(WordVec *word_vec);
 void word_vec_remove_at(WordVec *word_vec, uint64_t pos);
 uint64_t word_vec_get_by_id(WordVec *word_vec, uint64_t id);
 
@@ -196,6 +196,7 @@ struct FuncVec
 };
 
 void create_func(FILE *file, uint64_t *id);
+void clear_func_vec(FuncVec *function_vec);
 
 void read_corth_file(FILE *fasm_file, WordVec *word_vec);
 
