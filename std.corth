@@ -36,8 +36,15 @@ func az char -- char do
         1 +
     end drop
 end
+func foda -- do
+0
+while dup 1000 < do
+    '(' putc dup putd
+    ')' putc
+    'A' AZ drop
+    '\n' putc
+    1 +
+end drop
+end
 
-'a' az drop
-'\n' putc
-'A' AZ drop
-'\n' putc
+foda

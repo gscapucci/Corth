@@ -742,7 +742,7 @@ void create_while_block(WordVec *parsed_file, uint64_t *i)
 {
     uint64_t while_index = *i;
     parsed_file->words[while_index]->size = sizeof(uint64_t);
-    parsed_file->words[while_index]->value = malloc(sizeof(uint64_t));
+    parsed_file->words[while_index]->value = my_malloc(sizeof(uint64_t));
     memcpy(parsed_file->words[while_index]->value, &while_index, sizeof(uint64_t));
     while(true)
     {
@@ -1779,7 +1779,7 @@ void string_vec_push(StringVec *string_vec, Word *word)
 {
     string_vec->strings[string_vec->size] = my_malloc(sizeof(String));
     string_vec->strings[string_vec->size]->size = (strlen((char *)word->value) + 1) * sizeof(char);
-    string_vec->strings[string_vec->size]->str = malloc(string_vec->strings[string_vec->size]->size * sizeof(char));
+    string_vec->strings[string_vec->size]->str = my_malloc(string_vec->strings[string_vec->size]->size * sizeof(char));
     memcpy(string_vec->strings[string_vec->size]->str, word->value, string_vec->strings[string_vec->size]->size);
     string_vec->size++;
 }

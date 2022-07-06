@@ -23,10 +23,6 @@ void *my_malloc(uint64_t size)
         void *mem = malloc(size);
         for (uint64_t i = 0; i < MAX_NUMBER_OF_ALLOCATIONS; i++)
         {
-            if(i == 81 && size == 16)
-            {
-                int a = 0;
-            }
             if(memory[i].loc == 0)
             {
                 memory[i].loc = (uintptr_t)mem;
@@ -65,7 +61,8 @@ void my_free(void *ptr)
 {
     free_used++;
     #if DEBUG
-        for (uint64_t i = 0; i < MAX_NUMBER_OF_ALLOCATIONS; i++)
+        uint64_t i;
+        for (i = 0; i < MAX_NUMBER_OF_ALLOCATIONS; i++)
         {
             if(memory[i].loc == (uintptr_t)ptr)
             {
@@ -75,6 +72,11 @@ void my_free(void *ptr)
                 memory[i].size = 0;
                 break;
             }
+        }
+        if(i == MAX_NUMBER_OF_ALLOCATIONS)
+        {
+            printf("double free at %p\n", ptr);
+            ERROR();
         }
     #endif
     free(ptr);
