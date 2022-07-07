@@ -1437,7 +1437,11 @@ void write_fasm_file(FILE *fasm_file, Word *word, DataTypeStack *data_type_stack
                     }
                 }
                 fprintf(fasm_file, ";;--FUNCTION_CALL--;;\n");
+                fprintf(fasm_file, "    mov rax, rsp\n");
+                fprintf(fasm_file, "    mov rsp, [ret_stack_rsp]\n");
                 fprintf(fasm_file, "    call addr_%s\n", func_vec.funcs[j]->name);
+                fprintf(fasm_file, "    mov [ret_stack_rsp], rsp\n");
+                fprintf(fasm_file, "    mov rsp, rax\n");
                 for (uint64_t k = 0; k < func_vec.funcs[j]->ret->size; k++)
                 {
                     data_type_stack_push(data_type_stack, &func_vec.funcs[j]->ret->types[k]);
@@ -1737,7 +1741,8 @@ void compile(char *path)
 
     fprintf(fasm_file, "entry main\n");
     fprintf(fasm_file, "main:\n");
-    
+    fprintf(fasm_file, "    mov rax, ret_stack_end\n");
+    fprintf(fasm_file, "    mov [ret_stack_rsp], rax\n");
     uint64_t stack_size = 0;
     
     for (uint64_t i = 0; i < parsed_file.size; i++)
@@ -1763,7 +1768,10 @@ void compile(char *path)
         }
         fprintf(fasm_file, "0\n");
     }
-    fprintf(fasm_file, "mem rb %d\n", MEM_CAP);
+    fprintf(fasm_file, "ret_stack_rsp: rq 1\n");
+    fprintf(fasm_file, "ret_stack: rb %d\n", RET_STACK_CAP);
+    fprintf(fasm_file, "ret_stack_end:\n");
+    fprintf(fasm_file, "mem: rb %d\n", MEM_CAP);
     
     clear_word_vec(&parsed_file);
     clear_macro_vec(&macro_vec);
@@ -2106,12 +2114,14 @@ void write_function(FILE *file, Func *func)
         data_type_stack_push(&dt_stack, &func->args->types[i]);
     }
     fprintf(file, "addr_%s:\n", func->name);
-    fprintf(file, "    pop rbp\n");
+    fprintf(file, "    mov [ret_stack_rsp], rsp\n");
+    fprintf(file, "    mov rsp, rax\n");
     for (uint64_t i = 0; i < func->func_body.size; i++)
     {
         write_fasm_file(file, func->func_body.words[i], &dt_stack, &stack_size, i);
     }
-    fprintf(file, "    push rbp\n");
+    fprintf(file, "    mov rax, rsp\n");
+    fprintf(file, "    mov rsp, [ret_stack_rsp]\n");
     fprintf(file, "    ret\n");
     if(dt_stack.size != func->ret->size)
     {

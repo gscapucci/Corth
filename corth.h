@@ -9,6 +9,7 @@
 #include <math.h>
 
 #define DEBUG 0
+#define RET_STACK_CAP 4096
 #define MEM_CAP 1024*1024
 #define MAX_STACK_CAP 1024*200
 #define MAX_NUMBER_OF_WORDS 1024*200
