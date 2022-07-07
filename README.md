@@ -22,7 +22,7 @@ Corth don't suport strings yet
 
 Print from A to Z:
 ```corth
-'A' cast(int) while dup 'Z' cast(int) 1 + < do
+'A' cast(int) while dup 'Z' cast(int) <= do
     cast(char) dup .
     cast(int)
     1 +
