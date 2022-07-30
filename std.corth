@@ -1,50 +1,23 @@
-macro sizeof(int) 8 end
-macro sizeof(ptr) 8 end
-macro sizeof(char) 1 end
-macro sizeof(bool) 1 end
-
-macro inc_ptr(8) cast(int) 1 + cast(ptr) end
-macro inc_ptr(16) cast(int) 2 + cast(ptr) end 
-macro inc_ptr(32) cast(int) 4 + cast(ptr) end 
-macro inc_ptr(64) cast(int) 8 + cast(ptr) end 
-
-macro sub_ptr(8) cast(int) 1 - cast(ptr) end
-macro sub_ptr(16) cast(int) 2 - cast(ptr) end
-macro sub_ptr(32) cast(int) 4 - cast(ptr) end
-macro sub_ptr(64) cast(int) 8 - cast(ptr) end
-
-macro inc_char(ptr) cast(int) sizeof(char) + cast(ptr) end
-macro inc_int(ptr) cast(int) sizeof(int) + cast(ptr) end
-macro inc_ptr(ptr) cast(int) sizeof(ptr) + cast(ptr) end
-
-
-macro putc cast(char) . end
-macro putd cast(int) . end
-macro putptr cast(ptr) . end
-macro putf cast(float) . end
-
-func AZ char -- char do
-    dup cast(int) while dup 'Z' cast(int) <= do
-        dup putc
-        1 +
-    end drop
-end
-
-func az char -- char do
-    dup cast(int) while dup 'z' cast(int) <= do
-        dup putc
-        1 +
-    end drop
-end
-
-func foda -- do
-'A'
-AZ
-drop
-
-'a'
-az
-drop
-end
-
-foda
+func sizeof(int) -- int do 8 end
+#func sizeof(ptr) -- int do 8 end
+#func sizeof(char) -- int do 1 end
+#func sizeof(bool) -- int do 1 end
+#
+#func incPtr8 ptr -- ptr do cast(int) 1 + cast(ptr) end
+#func incPtr16 ptr -- ptr do cast(int) 2 + cast(ptr) end 
+#func incPtr32 ptr -- ptr do cast(int) 4 + cast(ptr) end 
+#func incPtr64 ptr -- ptr do cast(int) 8 + cast(ptr) end 
+#
+#func subPtr8 ptr -- ptr do cast(int) 1 - cast(ptr) end
+#func subPtr16 ptr -- ptr do cast(int) 2 - cast(ptr) end
+#func subPtr32 ptr -- ptr do cast(int) 4 - cast(ptr) end
+#func subPtr64 ptr -- ptr do cast(int) 8 - cast(ptr) end
+#
+#func inc_char(ptr) ptr -- ptr do cast(int) sizeof(char) + cast(ptr) end
+#func inc_int(ptr) ptr -- ptr do cast(int) sizeof(int) + cast(ptr) end
+#func inc_ptr(ptr) ptr -- ptr do cast(int) sizeof(ptr) + cast(ptr) end
+#func inc_bool(ptr) ptr -- ptr do cast(int) sizeof(bool) + cast(ptr) end
+#
+#func putc char -- do cast(char) . end
+#func putd int -- do cast(int) . end
+#func putptr ptr -- do cast(ptr) . end

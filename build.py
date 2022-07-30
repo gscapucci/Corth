@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+
 import subprocess
 import sys
 
@@ -27,8 +28,11 @@ def main():
 
 if __name__ == "__main__":
     main()
-    if len(sys.argv) == 2 and (sys.argv[1] == '-run' or sys.argv[1] == '-r'):
-        run_echoed_cmd('./corth std.corth')
-        run_echoed_cmd('fasm -m 1000000 std.fasm')
-        run_echoed_cmd('./std')
-
+    run_echoed_cmd('rm *.o')
+    if len(sys.argv) > 1:
+        if sys.argv[1] == '-run' or sys.argv[1] == '-r':
+            run_echoed_cmd('./corth std.corth')
+            run_echoed_cmd('fasm -m 1000000 std.fasm')
+            run_echoed_cmd('./std')
+        else:
+            print('invalid args: ' + str(sys.argv[1:]))

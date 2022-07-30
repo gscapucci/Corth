@@ -1098,13 +1098,10 @@ void write_fasm_file(FILE *fasm_file, Word *word, DataTypeStack *data_type_stack
             fprintf(fasm_file, "    push rax\n");
             break;
         case DT_STRING:
-            data_type_stack_push(data_type_stack, &(DataType){DT_INT});
             data_type_stack_push(data_type_stack, &(DataType){DT_STRING});
             string_vec_push(&str_vec, word);
             str_len[str_index] = str_vec.strings[str_vec.size - 1]->size;
             fprintf(fasm_file, ";;--PUSH_STRING--;;\n");
-            fprintf(fasm_file, "    mov rax, %u\n", str_len[index++]);
-            fprintf(fasm_file, "    push rax\n");
             fprintf(fasm_file, "    push str_%zu\n", str_vec.size - 1);
             break;
         default:
@@ -1771,6 +1768,7 @@ void compile(char *path)
     fprintf(fasm_file, "ret_stack_rsp: rq 1\n");
     fprintf(fasm_file, "ret_stack: rb %d\n", RET_STACK_CAP);
     fprintf(fasm_file, "ret_stack_end:\n");
+    fprintf(fasm_file, "mem_str: rb %d\n", MEM_STR_CAP);
     fprintf(fasm_file, "mem: rb %d\n", MEM_CAP);
     
     clear_word_vec(&parsed_file);
