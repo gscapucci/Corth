@@ -33,7 +33,8 @@ end drop
 
 ### Requirements
 -linux(or wsl)<br>
--gcc compiler<br>
+-gcc<br>
+-python3<br>
 -[fasm](https://flatassembler.net/)
 
 Build:
