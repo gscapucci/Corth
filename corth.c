@@ -238,7 +238,7 @@ void create_macro(FILE *file, uint64_t *id)
                 {
                     ERROR("not expect end of file");
                 }
-                while (c != '\"' || str[str_len - 1] != '\\')
+                while (!(c == '\"' || str[str_len - 1] != '\\'))
                 {
                     if(c == EOF)
                     {
@@ -377,7 +377,7 @@ int32_t parse_file(WordVec *word_vec, FILE *file)
                 {
                     ERROR("not expect end of file");
                 }
-                while (!(c == '\"' && str[str_len - 1] != '\\'))
+                while (c != '\"' || str[str_len - 1] == '\\')
                 {
                     if(c == EOF)
                     {
@@ -1070,7 +1070,7 @@ void create_blocks(WordVec *parsed_file, uint64_t *i)
 
 void write_fasm_file(FILE *fasm_file, Word *word, DataTypeStack *data_type_stack, uint64_t *stack_size, uint64_t index)
 {
-    static uint16_t *str_len;
+    static uint16_t len_str[1024];
     static int32_t str_index = 0;
     DataType aux[3] = {0};
     switch (word->type)
@@ -1100,7 +1100,7 @@ void write_fasm_file(FILE *fasm_file, Word *word, DataTypeStack *data_type_stack
         case DT_STRING:
             data_type_stack_push(data_type_stack, &(DataType){DT_STRING});
             string_vec_push(&str_vec, word);
-            str_len[str_index] = str_vec.strings[str_vec.size - 1]->size;
+            len_str[str_index++] = str_vec.strings[str_vec.size - 1]->size;
             fprintf(fasm_file, ";;--PUSH_STRING--;;\n");
             fprintf(fasm_file, "    push str_%zu\n", str_vec.size - 1);
             break;
@@ -1436,7 +1436,7 @@ void write_fasm_file(FILE *fasm_file, Word *word, DataTypeStack *data_type_stack
                 fprintf(fasm_file, ";;--FUNCTION_CALL--;;\n");
                 fprintf(fasm_file, "    mov rax, rsp\n");
                 fprintf(fasm_file, "    mov rsp, [ret_stack_rsp]\n");
-                fprintf(fasm_file, "    call addr_%s\n", func_vec.funcs[j]->name);
+                fprintf(fasm_file, "    call func_%ld\n", j);
                 fprintf(fasm_file, "    mov [ret_stack_rsp], rsp\n");
                 fprintf(fasm_file, "    mov rsp, rax\n");
                 for (uint64_t k = 0; k < func_vec.funcs[j]->ret->size; k++)
@@ -1484,19 +1484,15 @@ void write_fasm_file(FILE *fasm_file, Word *word, DataTypeStack *data_type_stack
                 fprintf(fasm_file, "    call dump\n");
                 break;
             case DT_STRING:
-                aux[0] = data_type_stack_pop(data_type_stack);
-                if(aux[0] != DT_INT)
-                {
-                    ERROR("expect string size(int)");
-                }
+                str_index--;
                 fprintf(fasm_file, ";;--PRINT_STR--;;\n");
                 fprintf(fasm_file, "    pop rax\n");
-                fprintf(fasm_file, "    pop rbx\n");
                 fprintf(fasm_file, "    lea rsi, [rax]\n");
                 fprintf(fasm_file, "    mov rdi, 1\n");
-                fprintf(fasm_file, "    mov rdx, rbx\n");
+                fprintf(fasm_file, "    mov rdx, %d\n", len_str[str_index]);
                 fprintf(fasm_file, "    mov rax, 1\n");
                 fprintf(fasm_file, "    syscall\n");
+                len_str[str_index] = 0;
                 break;
             default:
                 ERROR("can not print this data type");
@@ -1701,6 +1697,7 @@ void compile(char *path)
     // type_check();
     fprintf(fasm_file, "format ELF64 executable 3\n");
     fprintf(fasm_file, "segment readable executable\n");
+    fprintf(fasm_file, "entry main\n");
 
     fprintf(fasm_file, "dump:\n");
     fprintf(fasm_file, "    mov  r9, -3689348814741910323\n");
@@ -1736,10 +1733,6 @@ void compile(char *path)
     
     write_functions(fasm_file);
 
-    fprintf(fasm_file, "entry main\n");
-    fprintf(fasm_file, "main:\n");
-    fprintf(fasm_file, "    mov rax, ret_stack_end\n");
-    fprintf(fasm_file, "    mov [ret_stack_rsp], rax\n");
     uint64_t stack_size = 0;
     
     for (uint64_t i = 0; i < parsed_file.size; i++)
@@ -1750,10 +1743,6 @@ void compile(char *path)
     {
         ERROR("unhandle data on stack");
     }
-    fprintf(fasm_file, "    mov rax, 60\n");
-    fprintf(fasm_file, "    mov rdi, 0\n");
-    fprintf(fasm_file, "    syscall\n");
-    fprintf(fasm_file, "    ret\n");
     fprintf(fasm_file, "segment readable writable\n");
 
     for (uint64_t i = 0; i < str_vec.size; i++)
@@ -1771,6 +1760,11 @@ void compile(char *path)
     fprintf(fasm_file, "mem_str: rb %d\n", MEM_STR_CAP);
     fprintf(fasm_file, "mem: rb %d\n", MEM_CAP);
     
+    if(!main_func_exist(&func_vec))
+    {
+        ERROR("main function do not exist");
+    }
+
     clear_word_vec(&parsed_file);
     clear_macro_vec(&macro_vec);
     clear_string_vec(&str_vec);
@@ -1933,10 +1927,6 @@ void create_func(FILE *file, uint64_t *id)
     }
     for (char c = getc(file);;c = getc(file))
     {
-        if(c == EOF)
-        {
-            ERROR("not expect end of file");
-        }
         if(str_len == 0)
         {
             if(c == '\'')
@@ -1980,18 +1970,18 @@ void create_func(FILE *file, uint64_t *id)
             if(c == '\"')
             {
                 str[str_len++] = c;
-                c= getc(file);
+                c = getc(file);
                 if(c == EOF)
                 {
                     ERROR("not expect end of file");
                 }
-                while (c != '\"' || str[str_len - 1] != '\\')
+                while (c != '\"' || str[str_len - 1] == '\\')
                 {
                     if(c == EOF)
                     {
                         ERROR("not expect end of file");
                     }
-                    str[str_len] = c;
+                    str[str_len++] = c;
                     c = getc(file);
                 }
                 str[str_len++] = c;
@@ -2101,7 +2091,7 @@ void clear_func_vec(FuncVec *function_vec)
     }
 }
 
-void write_function(FILE *file, Func *func)
+void write_function(FILE *file, Func *func, uint64_t function_id)
 {
     DataTypeStack dt_stack = {0};
     dt_stack.types = (DataType *)my_malloc(MAX_NUMBER_OF_FUNCTION_PARAMETERS * sizeof(DataType));
@@ -2111,16 +2101,33 @@ void write_function(FILE *file, Func *func)
     {
         data_type_stack_push(&dt_stack, &func->args->types[i]);
     }
-    fprintf(file, "addr_%s:\n", func->name);
-    fprintf(file, "    mov [ret_stack_rsp], rsp\n");
-    fprintf(file, "    mov rsp, rax\n");
+    if(!strcmp(func->name, "main"))
+    {
+        fprintf(file, "main:\n");
+    }
+    else
+    {
+        fprintf(file, "func_%ld:\n", function_id);
+        fprintf(file, "    mov [ret_stack_rsp], rsp\n");
+        fprintf(file, "    mov rsp, rax\n");
+    }
     for (uint64_t i = 0; i < func->func_body.size; i++)
     {
         write_fasm_file(file, func->func_body.words[i], &dt_stack, &stack_size, i);
     }
-    fprintf(file, "    mov rax, rsp\n");
-    fprintf(file, "    mov rsp, [ret_stack_rsp]\n");
-    fprintf(file, "    ret\n");
+    if(!strcmp(func->name, "main"))
+    {
+        fprintf(file, "    mov rax, 60\n");
+        fprintf(file, "    mov rdi, 0\n");
+        fprintf(file, "    syscall\n");
+        fprintf(file, "    ret\n");
+    }
+    else
+    {
+        fprintf(file, "    mov rax, rsp\n");
+        fprintf(file, "    mov rsp, [ret_stack_rsp]\n");
+        fprintf(file, "    ret\n");
+    }
     if(dt_stack.size != func->ret->size)
     {
         fprintf(stderr, "%zu %zu\n", dt_stack.size, func->ret->size);
@@ -2141,6 +2148,18 @@ void write_functions(FILE *file)
 {
     for (uint64_t i = 0; i < func_vec.size; i++)
     {
-        write_function(file, func_vec.funcs[i]);
+        write_function(file, func_vec.funcs[i], i);
     }   
+}
+
+bool main_func_exist(FuncVec *funcVec)
+{
+    for (uint64_t i = 0; i < funcVec->size; i++)
+    {   
+        if(!strcmp(funcVec->funcs[i]->name, "main"))
+        {
+            return true;
+        }
+    }
+    return false;
 }

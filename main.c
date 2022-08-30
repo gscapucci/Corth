@@ -5,6 +5,7 @@
 
 int main(int argc, char **argv)
 {
+    START_TIMER(timer);
     if(strlen(argv[argc - 1]) < 6 || strcmp(argv[argc - 1] + strlen(argv[argc - 1]) - 6, ".corth"))
     {
         ERROR("invalid input file");
@@ -19,7 +20,8 @@ int main(int argc, char **argv)
         #else
             check_mem();
         #endif
-        
+        END_TIMER(timer);
+        PRINT_TIMER(timer);
         return 0;
     }
     ERROR("error");

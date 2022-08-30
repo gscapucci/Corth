@@ -290,6 +290,7 @@ void creaet_func_if_block(Func *func, uint64_t *i, uint64_t func_vec_index, uint
 void creaet_func_while_block(Func *func, uint64_t *i, uint64_t func_vec_index, uint64_t parsed_file_index);
 void print_parsed_file(WordVec *word_vec);
 void check_valid_name(char *str);
-void write_function(FILE *file, Func *func);
+void write_function(FILE *file, Func *func, uint64_t function_id);
 void write_functions(FILE *file);
+bool main_func_exist(FuncVec *func);
 #endif /* CORTH_H */

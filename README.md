@@ -3,30 +3,21 @@
 
 Hello, World:
 ```corth
-'H' .
-'e' .
-'l' .
-'l' .
-'o' .
-',' .
-' ' .
-'W' .
-'o' .
-'r' .
-'l' .
-'d' .
-'\n' .
+func main -- do
+    "Hello, World!\n" .
+end
 ```
-Corth don't suport strings yet
 
 
 Print from A to Z:
 ```corth
-'A' cast(int) while dup 'Z' cast(int) <= do
-    cast(char) dup .
-    cast(int)
-    1 +
-end drop
+func main -- do
+    'A' cast(int) while dup 'Z' cast(int) <= do
+        cast(char) dup .
+        cast(int)
+        1 +
+    end drop
+end
 ```
 
 ## Quick Start

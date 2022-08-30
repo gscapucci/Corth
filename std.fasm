@@ -1,5 +1,6 @@
 format ELF64 executable 3
 segment readable executable
+entry main
 dump:
     mov  r9, -3689348814741910323
     sub     rsp, 40
@@ -31,24 +32,22 @@ dump:
     syscall
     add     rsp, 40
     ret
-addr_sizeof(int):
-    mov [ret_stack_rsp], rsp
-    mov rsp, rax
-;;--PUSH_INT 8--;;
-    mov rax, 8
-    push rax
-    mov rax, rsp
-    mov rsp, [ret_stack_rsp]
-    ret
-entry main
 main:
-    mov rax, ret_stack_end
-    mov [ret_stack_rsp], rax
+;;--PUSH_STRING--;;
+    push str_0
+;;--PRINT_STR--;;
+    pop rax
+    lea rsi, [rax]
+    mov rdi, 1
+    mov rdx, 14
+    mov rax, 1
+    syscall
     mov rax, 60
     mov rdi, 0
     syscall
     ret
 segment readable writable
+str_0 db 72,101,108,108,111,44,32,87,111,114,108,100,33,0
 ret_stack_rsp: rq 1
 ret_stack: rb 4096
 ret_stack_end:
