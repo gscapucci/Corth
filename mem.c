@@ -30,7 +30,7 @@ void *my_malloc(uint64_t size)
                 break;
             }
         }
-        printf("allocated %zu bytes at %p\n", size, mem);
+        printf("allocated %zu bytes at %p. Sum %zu\n", size, mem, max_allocated_aux);
         return mem;
     #else
         return malloc(size);

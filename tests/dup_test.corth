@@ -1,2 +1,4 @@
-10 dup . .
-'a' dup . .
+func main -- do
+    10 dup . .
+    'a' dup . .
+end

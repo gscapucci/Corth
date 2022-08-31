@@ -1,1 +1,3 @@
-10 10 'a' 'b' drop drop drop drop
+func main -- do
+    10 10 'a' 'b' drop drop drop drop
+end

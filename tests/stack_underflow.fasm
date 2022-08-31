@@ -1,5 +1,6 @@
 format ELF64 executable 3
 segment readable executable
+entry main
 dump:
     mov  r9, -3689348814741910323
     sub     rsp, 40
@@ -31,5 +32,4 @@ dump:
     syscall
     add     rsp, 40
     ret
-entry main
 main:

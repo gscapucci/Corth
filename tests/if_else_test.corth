@@ -1,3 +1,4 @@
+func main -- do
 1 1 = if
     1 1 = if
         1 .
@@ -89,4 +90,6 @@ end
     end
 else
     4 .
+end
+
 end

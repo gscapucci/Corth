@@ -1,2 +1,6 @@
+
+func main -- do
 1 2 swap . .
 1 2 3 4 swap swap . . swap . .
+
+end

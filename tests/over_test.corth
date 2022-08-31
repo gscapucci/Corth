@@ -1,3 +1,7 @@
+func main -- do
+
 1 2 over over . . . .
 1 2 3 over over . . . . .
 1 2 over . over . over . . .
+
+end

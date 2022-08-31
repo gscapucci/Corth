@@ -9,4 +9,6 @@ macro print_alfa
     drop drop
 end
 
+func main -- do
 print_alfa
+end

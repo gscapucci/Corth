@@ -1,5 +1,6 @@
 format ELF64 executable 3
 segment readable executable
+entry main
 dump:
     mov  r9, -3689348814741910323
     sub     rsp, 40
@@ -31,7 +32,6 @@ dump:
     syscall
     add     rsp, 40
     ret
-entry main
 main:
 ;;--PUSH_INT 1--;;
     mov rax, 1
@@ -94,4 +94,8 @@ main:
     syscall
     ret
 segment readable writable
-mem rb 1048576
+ret_stack_rsp: rq 1
+ret_stack: rb 4096
+ret_stack_end:
+mem_str: rb 1048576
+mem: rb 1048576
